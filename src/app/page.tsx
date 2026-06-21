@@ -489,6 +489,16 @@ export default function Home() {
       toast({ title: 'Recruitment posted', description: data.message })
     })
 
+    // Join request sent (to the requester)
+    sock.on('legion:join-requested', (data: { legionId: string; legionName: string; tag: string; message: string }) => {
+      toast({
+        title: 'Join request sent',
+        description: data.message,
+      })
+    })
+
+    // Join request approved/rejected notifications come through error-message / legion:joined
+
     // Raid alarm — triggered when someone says "raid" in legion chat
     sock.on('legion:raid-alarm', (alarm: RaidAlarm) => {
       setRaidAlarm(alarm)
@@ -632,16 +642,42 @@ export default function Home() {
     }
   }, [activeChannel])
 
-  const handleCreateLegion = useCallback((data: { name: string; tag: string; description: string; icon?: string; iconType?: 'emoji' | 'image'; inGameLegionId?: string }) => {
+  const handleCreateLegion = useCallback((data: { name: string; tag: string; description: string; icon?: string; iconType?: 'emoji' | 'image'; inGameLegionId?: string; visibility?: 'public' | 'private'; password?: string }) => {
     const sock = socketRef.current
     if (!sock) return
     sock.emit('legion:create', data)
   }, [])
 
-  const handleJoinLegion = useCallback((legionId: string) => {
+  const handleJoinLegion = useCallback((legionId: string, password?: string) => {
     const sock = socketRef.current
     if (!sock) return
-    sock.emit('legion:join', { legionId })
+    sock.emit('legion:join', { legionId, password })
+  }, [])
+
+  // ---------- Legion join request approval (Captain / Vice Captain) ----------
+  const handleApproveJoin = useCallback((requestId: string) => {
+    const sock = socketRef.current
+    if (!sock) return
+    sock.emit('legion:approve-join', { requestId })
+  }, [])
+
+  const handleRejectJoin = useCallback((requestId: string) => {
+    const sock = socketRef.current
+    if (!sock) return
+    sock.emit('legion:reject-join', { requestId })
+  }, [])
+
+  // ---------- Legion visibility + password (Captain / Vice Captain) ----------
+  const handleSetVisibility = useCallback((visibility: 'public' | 'private', password?: string) => {
+    const sock = socketRef.current
+    if (!sock) return
+    sock.emit('legion:set-visibility', { visibility, password })
+  }, [])
+
+  const handleSetPassword = useCallback((password: string) => {
+    const sock = socketRef.current
+    if (!sock) return
+    sock.emit('legion:set-password', { password })
   }, [])
 
   const handleRefreshLegions = useCallback(() => {
@@ -1135,6 +1171,10 @@ export default function Home() {
                   onRaidSendMessage={handleRaidSendMessage}
                   onRaidTyping={handleRaidTyping}
                   onAssignRole={handleLegionAssignRole}
+                  onApproveJoin={handleApproveJoin}
+                  onRejectJoin={handleRejectJoin}
+                  onSetVisibility={handleSetVisibility}
+                  onSetPassword={handleSetPassword}
                   raidAlarm={raidAlarm}
                   onDismissAlarm={() => {
                     setRaidAlarm(null)

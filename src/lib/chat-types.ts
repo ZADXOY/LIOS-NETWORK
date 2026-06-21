@@ -92,6 +92,18 @@ export interface LegionTask {
 }
 
 export type LegionStatus = 'pending' | 'approved' | 'rejected'
+export type LegionVisibility = 'public' | 'private'
+
+/** A pending join request — must be approved by the Captain or Vice Captain. */
+export interface JoinRequest {
+  id: string
+  userId: string // socket id at time of request
+  username: string
+  avatar: string
+  level: number
+  email: string
+  requestedAt: string
+}
 
 export interface Legion {
   id: string
@@ -116,6 +128,12 @@ export interface Legion {
   tasks: LegionTask[]
   createdAt: string
   memberCount: number
+  /** 'public' = anyone can request to join, 'private' = requires password + approval */
+  visibility: LegionVisibility
+  /** Password for private legions (null for public legions) */
+  password: string | null
+  /** Pending join requests awaiting Captain / Vice Captain approval */
+  joinRequests: JoinRequest[]
   /** 'pending' = awaiting admin approval, 'approved' = live, 'rejected' = denied */
   status: LegionStatus
 }

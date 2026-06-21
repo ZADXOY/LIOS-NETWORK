@@ -44,12 +44,14 @@ export interface CreateLegionPayload {
   icon: string
   iconType: 'emoji' | 'image'
   inGameLegionId: string
+  visibility: 'public' | 'private'
+  password?: string
 }
 
 interface Props {
   openLegions: Legion[]
   onCreate: (data: CreateLegionPayload) => void
-  onJoin: (legionId: string) => void
+  onJoin: (legionId: string, password?: string) => void
   onRefresh: () => void
 }
 
@@ -238,33 +240,81 @@ function LegionListCard({
   onJoin,
 }: {
   legion: Legion
-  onJoin: (legionId: string) => void
+  onJoin: (legionId: string, password?: string) => void
 }) {
+  const [showPasswordInput, setShowPasswordInput] = useState(false)
+  const [password, setPassword] = useState('')
+
+  const handleJoin = () => {
+    if (legion.visibility === 'private' && !showPasswordInput) {
+      setShowPasswordInput(true)
+      return
+    }
+    onJoin(legion.id, legion.visibility === 'private' ? password : undefined)
+    setPassword('')
+    setShowPasswordInput(false)
+  }
+
   return (
-    <div className="flex items-center gap-3 rounded-sm border border-border bg-background/40 p-3">
-      <LegionLogo
-        icon={legion.icon}
-        iconType={legion.iconType || 'emoji'}
-        size={40}
-        className="shrink-0"
-      />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="truncate text-sm font-semibold">{legion.name}</span>
-          <span className="rounded-sm bg-primary/20 px-1.5 py-0.5 text-[10px] font-mono font-bold text-primary">
-            [{legion.tag}]
-          </span>
-          <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
-            <Users className="mr-1 h-2.5 w-2.5" />
-            {legion.memberCount}/50
-          </Badge>
+    <div className="rounded-sm border border-border bg-background/40 p-3">
+      <div className="flex items-center gap-3">
+        <LegionLogo
+          icon={legion.icon}
+          iconType={legion.iconType || 'emoji'}
+          size={40}
+          className="shrink-0"
+        />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="truncate text-sm font-semibold">{legion.name}</span>
+            <span className="rounded-sm bg-primary/20 px-1.5 py-0.5 text-[10px] font-mono font-bold text-primary">
+              [{legion.tag}]
+            </span>
+            <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+              <Users className="mr-1 h-2.5 w-2.5" />
+              {legion.memberCount}/50
+            </Badge>
+            {legion.visibility === 'private' && (
+              <Badge className="h-5 gap-1 bg-amber-500/15 px-1.5 text-[10px] text-amber-300 rounded-sm">
+                🔒 Private
+              </Badge>
+            )}
+            {legion.visibility === 'public' && (
+              <Badge className="h-5 gap-1 bg-accent/15 px-1.5 text-[10px] text-accent rounded-sm">
+                🌐 Public
+              </Badge>
+            )}
+          </div>
+          <p className="truncate text-xs text-muted-foreground">{legion.description}</p>
         </div>
-        <p className="truncate text-xs text-muted-foreground">{legion.description}</p>
+        {!showPasswordInput && (
+          <Button size="sm" className="h-8 shrink-0 rounded-sm mono-header" onClick={handleJoin}>
+            <LogIn className="mr-1 h-3.5 w-3.5" />
+            Request
+          </Button>
+        )}
       </div>
-      <Button size="sm" className="h-8 shrink-0 rounded-sm mono-header" onClick={() => onJoin(legion.id)}>
-        <LogIn className="mr-1 h-3.5 w-3.5" />
-        Join
-      </Button>
+      {showPasswordInput && legion.visibility === 'private' && (
+        <div className="mt-3 flex items-center gap-2">
+          <Input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Enter legion password…"
+            className="h-8 flex-1 rounded-sm text-xs"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') handleJoin()
+            }}
+            autoFocus
+          />
+          <Button size="sm" className="h-8 rounded-sm mono-header" onClick={handleJoin} disabled={!password.trim()}>
+            Submit
+          </Button>
+          <Button size="sm" variant="ghost" className="h-8 rounded-sm" onClick={() => { setShowPasswordInput(false); setPassword('') }}>
+            Cancel
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
@@ -282,6 +332,8 @@ function CreateLegionDialog({
   const [tag, setTag] = useState('')
   const [description, setDescription] = useState('')
   const [inGameLegionId, setInGameLegionId] = useState('')
+  const [visibility, setVisibility] = useState<'public' | 'private'>('public')
+  const [password, setPassword] = useState('')
 
   // Logo state: either an emoji from presets, or an uploaded image URL
   const [iconType, setIconType] = useState<'emoji' | 'image'>('emoji')
@@ -329,6 +381,7 @@ function CreateLegionDialog({
     if (!name.trim() || tag.trim().length < 2) return
     if (iconType === 'image' && !imageIcon) return
     if (!inGameLegionId.trim()) return
+    if (visibility === 'private' && !password.trim()) return
 
     onCreate({
       name: name.trim(),
@@ -337,6 +390,8 @@ function CreateLegionDialog({
       icon: iconType === 'image' ? imageIcon : emojiIcon,
       iconType,
       inGameLegionId: inGameLegionId.trim(),
+      visibility,
+      password: visibility === 'private' ? password.trim() : undefined,
     })
 
     // Reset form
@@ -344,6 +399,8 @@ function CreateLegionDialog({
     setTag('')
     setDescription('')
     setInGameLegionId('')
+    setVisibility('public')
+    setPassword('')
     setIconType('emoji')
     setEmojiIcon('🛡️')
     setImageIcon('')
@@ -355,7 +412,8 @@ function CreateLegionDialog({
     tag.trim().length >= 2 &&
     inGameLegionId.trim().length > 0 &&
     !uploading &&
-    (iconType === 'emoji' ? !!emojiIcon : !!imageIcon)
+    (iconType === 'emoji' ? !!emojiIcon : !!imageIcon) &&
+    (visibility === 'public' || password.trim().length > 0)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -536,6 +594,61 @@ function CreateLegionDialog({
               maxLength={200}
               className="rounded-sm"
             />
+          </div>
+
+          <Separator />
+
+          {/* Visibility + Password */}
+          <div className="space-y-3">
+            <Label className="mono-header text-xs">Visibility</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setVisibility('public')}
+                className={`rounded-sm border p-3 text-left transition-all ${
+                  visibility === 'public'
+                    ? 'border-accent bg-accent/10 ring-1 ring-accent'
+                    : 'border-border hover:border-accent/40'
+                }`}
+              >
+                <div className="text-lg">🌐</div>
+                <div className="mt-1 text-xs font-semibold mono-header">Public</div>
+                <div className="text-[10px] text-muted-foreground">Anyone can request to join (needs approval)</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => setVisibility('private')}
+                className={`rounded-sm border p-3 text-left transition-all ${
+                  visibility === 'private'
+                    ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                    : 'border-border hover:border-primary/40'
+                }`}
+              >
+                <div className="text-lg">🔒</div>
+                <div className="mt-1 text-xs font-semibold mono-header">Private</div>
+                <div className="text-[10px] text-muted-foreground">Requires password + approval</div>
+              </button>
+            </div>
+
+            {visibility === 'private' && (
+              <div className="space-y-2">
+                <Label htmlFor="legion-password" className="mono-header text-xs">
+                  Password <span className="text-primary">(required for private)</span>
+                </Label>
+                <Input
+                  id="legion-password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Members need this to request to join"
+                  maxLength={100}
+                  className="rounded-sm"
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  You can change this later from the legion settings. Members still need Captain / Vice Captain approval after entering the password.
+                </p>
+              </div>
+            )}
           </div>
 
           <Separator />

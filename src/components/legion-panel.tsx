@@ -4,6 +4,7 @@ import { useState } from 'react'
 import {
   Crown,
   Shield,
+  ShieldCheck,
   User as UserIcon,
   UserPlus,
   Plus,
@@ -23,6 +24,8 @@ import {
   ChevronDown,
   Star,
   Award,
+  Lock,
+  Globe,
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -84,6 +87,14 @@ interface Props {
   onRaidTyping: (isTyping: boolean) => void
   /** Captain assigns Vice Captain / Elite / Member ranks */
   onAssignRole: (userId: string, role: 'vice_captain' | 'elite' | 'member') => void
+  /** Captain / Vice Captain approves a pending join request */
+  onApproveJoin: (requestId: string) => void
+  /** Captain / Vice Captain rejects a pending join request */
+  onRejectJoin: (requestId: string) => void
+  /** Captain / Vice Captain sets visibility (public/private) + password */
+  onSetVisibility: (visibility: 'public' | 'private', password?: string) => void
+  /** Captain / Vice Captain changes the password (private legions only) */
+  onSetPassword: (password: string) => void
   /** Active raid alarm (if any) — shown as a flashing banner */
   raidAlarm: RaidAlarm | null
   /** Dismiss the raid alarm banner */
@@ -169,6 +180,10 @@ export function LegionPanel({
   onRaidSendMessage,
   onRaidTyping,
   onAssignRole,
+  onApproveJoin,
+  onRejectJoin,
+  onSetVisibility,
+  onSetPassword,
   raidAlarm,
   onDismissAlarm,
 }: Props) {
@@ -178,7 +193,7 @@ export function LegionPanel({
   const [taskDialogOpen, setTaskDialogOpen] = useState(false)
   const [disbandDialogOpen, setDisbandDialogOpen] = useState(false)
   const [kickTarget, setKickTarget] = useState<LegionMember | null>(null)
-  const [activeTab, setActiveTab] = useState<'chat' | 'raids' | 'tasks' | 'members'>('chat')
+  const [activeTab, setActiveTab] = useState<'chat' | 'raids' | 'tasks' | 'members' | 'requests' | 'settings'>('chat')
   const [recruitOpen, setRecruitOpen] = useState(false)
   const [recruitReason, setRecruitReason] = useState('')
   const [raidDraft, setRaidDraft] = useState('')
@@ -187,6 +202,8 @@ export function LegionPanel({
   const isLeader = legion.leaderId === currentUserId
   const myMember = legion.members.find((m) => m.userId === currentUserId)
   const isApproved = legion.status === 'approved'
+  // Captain or Vice Captain can approve joins, change settings, recruit
+  const canManage = myMember?.role === 'captain' || myMember?.role === 'vice_captain'
 
   const handleSend = () => {
     const text = draft.trim()
@@ -260,6 +277,17 @@ export function LegionPanel({
               >
                 {isApproved ? 'Approved' : 'Pending'}
               </Badge>
+              {legion.visibility === 'private' ? (
+                <Badge className="h-5 gap-1 bg-amber-500/15 px-1.5 text-[10px] text-amber-300 rounded-sm">
+                  <Lock className="h-3 w-3" />
+                  Private
+                </Badge>
+              ) : (
+                <Badge className="h-5 gap-1 bg-accent/15 px-1.5 text-[10px] text-accent rounded-sm">
+                  <Globe className="h-3 w-3" />
+                  Public
+                </Badge>
+              )}
             </div>
             <p className="truncate text-xs text-muted-foreground">
               {legion.memberCount} member{legion.memberCount === 1 ? '' : 's'} · In-game ID: {legion.inGameLegionId}
@@ -267,7 +295,7 @@ export function LegionPanel({
           </div>
         </div>
         <div className="flex items-center gap-1 shrink-0">
-          {isLeader && isApproved && (
+          {canManage && isApproved && (
             <Button
               size="sm"
               variant="outline"
@@ -351,12 +379,14 @@ export function LegionPanel({
       )}
 
       {/* Tabs */}
-      <div className="flex border-b border-border/60 px-2 sm:px-3">
+      <div className="flex border-b border-border/60 px-2 sm:px-3 overflow-x-auto scrollbar-island">
         {([
           { id: 'chat', label: 'Chat', icon: <Send className="h-3.5 w-3.5" /> },
           { id: 'raids', label: 'Raids', icon: <Flame className="h-3.5 w-3.5" /> },
           { id: 'tasks', label: `Tasks (${legion.tasks.length})`, icon: <ClipboardList className="h-3.5 w-3.5" /> },
           { id: 'members', label: `Members (${legion.memberCount})`, icon: <Shield className="h-3.5 w-3.5" /> },
+          ...(canManage ? [{ id: 'requests' as const, label: `Requests${legion.joinRequests?.length ? ` (${legion.joinRequests.length})` : ''}`, icon: <UserPlus className="h-3.5 w-3.5" /> }] : []),
+          ...(canManage ? [{ id: 'settings' as const, label: 'Settings', icon: <ShieldCheck className="h-3.5 w-3.5" /> }] : []),
         ] as const).map((tab) => (
           <button
             key={tab.id}
@@ -630,6 +660,23 @@ export function LegionPanel({
           currentUserId={currentUserId}
           onKick={(m) => setKickTarget(m)}
           onAssignRole={onAssignRole}
+        />
+      )}
+
+      {activeTab === 'requests' && canManage && (
+        <RequestsPanel
+          requests={legion.joinRequests || []}
+          onApprove={onApproveJoin}
+          onReject={onRejectJoin}
+        />
+      )}
+
+      {activeTab === 'settings' && canManage && (
+        <SettingsPanel
+          visibility={legion.visibility}
+          isPrivate={legion.visibility === 'private'}
+          onSetVisibility={onSetVisibility}
+          onSetPassword={onSetPassword}
         />
       )}
 
@@ -977,6 +1024,246 @@ function TaskCard({
         </div>
       )}
     </div>
+  )
+}
+
+/** Join Requests panel — Captain / Vice Captain approve or reject pending requests */
+function RequestsPanel({
+  requests,
+  onApprove,
+  onReject,
+}: {
+  requests: import('@/lib/chat-types').JoinRequest[]
+  onApprove: (requestId: string) => void
+  onReject: (requestId: string) => void
+}) {
+  return (
+    <ScrollArea className="flex-1 scrollbar-island">
+      <div className="mx-auto max-w-3xl space-y-3 p-3 sm:p-4">
+        <div className="rounded-sm border border-border bg-card/40 p-3">
+          <h3 className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mono-header">
+            <UserPlus className="h-3.5 w-3.5" />
+            Pending Join Requests ({requests.length})
+          </h3>
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Approve or reject players who requested to join your legion. Both public and private legions require approval.
+          </p>
+        </div>
+
+        {requests.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="mb-3 grid h-14 w-14 place-items-center rounded-sm bg-muted/40 text-3xl">
+              ✅
+            </div>
+            <h3 className="text-sm font-semibold mono-header">No pending requests</h3>
+            <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+              When a player requests to join your legion, they'll appear here for approval.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {requests.map((r) => (
+              <div key={r.id} className="flex items-center gap-3 rounded-sm border border-border bg-card/40 p-3">
+                <Avatar className="h-9 w-9 rounded-sm">
+                  <AvatarFallback className="bg-muted text-sm rounded-sm">{r.avatar}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="truncate text-sm font-semibold">{r.username}</span>
+                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px] rounded-sm">
+                      Lv {r.level}
+                    </Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground font-mono">
+                    Requested {new Date(r.requestedAt).toLocaleString()}
+                  </p>
+                </div>
+                <div className="flex gap-1 shrink-0">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    className="h-7 px-2 text-xs rounded-sm mono-header"
+                    onClick={() => onApprove(r.id)}
+                  >
+                    <Check className="mr-1 h-3 w-3" />
+                    Approve
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 rounded-sm mono-header"
+                    onClick={() => onReject(r.id)}
+                  >
+                    <X className="mr-1 h-3 w-3" />
+                    Reject
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </ScrollArea>
+  )
+}
+
+/** Settings panel — Captain / Vice Captain change visibility (public/private) and password */
+function SettingsPanel({
+  visibility,
+  isPrivate,
+  onSetVisibility,
+  onSetPassword,
+}: {
+  visibility: 'public' | 'private'
+  isPrivate: boolean
+  onSetVisibility: (visibility: 'public' | 'private', password?: string) => void
+  onSetPassword: (password: string) => void
+}) {
+  const [newPassword, setNewPassword] = useState('')
+  const [changePasswordOpen, setChangePasswordOpen] = useState(false)
+
+  return (
+    <ScrollArea className="flex-1 scrollbar-island">
+      <div className="mx-auto max-w-3xl space-y-4 p-3 sm:p-4">
+        {/* Visibility setting */}
+        <div className="rounded-sm border border-border bg-card/40 p-4">
+          <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold mono-header">
+            {isPrivate ? <Lock className="h-4 w-4 text-primary" /> : <Globe className="h-4 w-4 text-accent" />}
+            Legion Visibility
+          </h3>
+          <p className="mb-3 text-xs text-muted-foreground">
+            Control who can request to join your legion. Both public and private legions require Captain / Vice Captain approval for new members.
+          </p>
+
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => {
+                if (visibility !== 'public') onSetVisibility('public')
+              }}
+              className={`rounded-sm border p-3 text-left transition-all ${
+                visibility === 'public'
+                  ? 'border-accent bg-accent/10 ring-1 ring-accent'
+                  : 'border-border hover:border-accent/40'
+              }`}
+            >
+              <Globe className="h-5 w-5 text-accent" />
+              <div className="mt-1 text-xs font-semibold mono-header">Public</div>
+              <div className="text-[10px] text-muted-foreground">Anyone can request to join</div>
+            </button>
+            <button
+              onClick={() => {
+                if (visibility !== 'private') {
+                  const pw = window.prompt('Set a password for this private legion:')
+                  if (pw && pw.trim()) onSetVisibility('private', pw.trim())
+                }
+              }}
+              className={`rounded-sm border p-3 text-left transition-all ${
+                visibility === 'private'
+                  ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                  : 'border-border hover:border-primary/40'
+              }`}
+            >
+              <Lock className="h-5 w-5 text-primary" />
+              <div className="mt-1 text-xs font-semibold mono-header">Private</div>
+              <div className="text-[10px] text-muted-foreground">Requires password + approval</div>
+            </button>
+          </div>
+          {visibility === 'private' && (
+            <p className="mt-2 text-[11px] text-amber-300 mono-header">
+              🔒 This legion is private. New members need the password to submit a join request.
+            </p>
+          )}
+        </div>
+
+        {/* Password change (private only) */}
+        {isPrivate && (
+          <div className="rounded-sm border border-border bg-card/40 p-4">
+            <h3 className="mb-1 flex items-center gap-2 text-sm font-semibold mono-header">
+              <Lock className="h-4 w-4 text-primary" />
+              Change Password
+            </h3>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Update the password members need to request to join. Existing members are not affected.
+            </p>
+            {changePasswordOpen ? (
+              <div className="space-y-2">
+                <Input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter new password…"
+                  maxLength={100}
+                  className="rounded-sm"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    className="h-8 rounded-sm mono-header"
+                    disabled={!newPassword.trim()}
+                    onClick={() => {
+                      onSetPassword(newPassword.trim())
+                      setNewPassword('')
+                      setChangePasswordOpen(false)
+                    }}
+                  >
+                    <Check className="mr-1 h-3.5 w-3.5" />
+                    Save Password
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 rounded-sm"
+                    onClick={() => {
+                      setChangePasswordOpen(false)
+                      setNewPassword('')
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-8 rounded-sm mono-header"
+                onClick={() => setChangePasswordOpen(true)}
+              >
+                <Lock className="mr-1 h-3.5 w-3.5" />
+                Change Password
+              </Button>
+            )}
+          </div>
+        )}
+
+        {/* Info */}
+        <div className="rounded-sm border border-border bg-card/40 p-4">
+          <h3 className="mb-2 flex items-center gap-2 text-sm font-semibold mono-header">
+            <ShieldCheck className="h-4 w-4 text-accent" />
+            How Joining Works
+          </h3>
+          <ul className="space-y-1.5 text-xs text-muted-foreground">
+            <li className="flex items-start gap-2">
+              <span className="text-primary mt-0.5">1.</span>
+              <span>A player finds your legion in the "Join a Legion" list.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary mt-0.5">2.</span>
+              <span>{isPrivate ? 'They enter the password (you set it above).' : 'They click "Request" to submit a join request.'}</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary mt-0.5">3.</span>
+              <span>The request appears in the "Requests" tab for the Captain or Vice Captain to approve.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary mt-0.5">4.</span>
+              <span>Once approved, the player joins the legion instantly and can access chat, tasks, and raids.</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </ScrollArea>
   )
 }
 

@@ -90,6 +90,17 @@ interface LegionTask {
 }
 
 type LegionStatus = 'pending' | 'approved' | 'rejected'
+type LegionVisibility = 'public' | 'private'
+
+interface JoinRequest {
+  id: string
+  userId: string // socket id at time of request
+  username: string
+  avatar: string
+  level: number
+  email: string
+  requestedAt: string
+}
 
 interface Legion {
   id: string
@@ -112,6 +123,12 @@ interface Legion {
   createdAt: string
   chatHistory: ChatMessage[]
   raidChatHistory: ChatMessage[]
+  /** 'public' = anyone can request to join, 'private' = requires password + approval */
+  visibility: LegionVisibility
+  /** Password for private legions (null for public) */
+  password: string | null
+  /** Pending join requests awaiting Captain / Vice Captain approval */
+  joinRequests: JoinRequest[]
   /** 'pending' = awaiting admin approval, 'approved' = live, 'rejected' = denied */
   status: LegionStatus
 }
@@ -261,8 +278,12 @@ const serializeLegion = (legion: Legion) => ({
   leaderId: legion.leaderId,
   leaderEmail: legion.leaderEmail,
   members: Array.from(legion.members.values()).sort((a, b) => {
-    if (a.role === 'leader' && b.role !== 'leader') return -1
-    if (b.role === 'leader' && a.role !== 'leader') return 1
+    if (a.role === 'captain' && b.role !== 'captain') return -1
+    if (b.role === 'captain' && a.role !== 'captain') return 1
+    if (a.role === 'vice_captain' && b.role !== 'vice_captain') return -1
+    if (b.role === 'vice_captain' && a.role !== 'vice_captain') return 1
+    if (a.role === 'elite' && b.role !== 'elite') return -1
+    if (b.role === 'elite' && a.role !== 'elite') return 1
     return a.username.localeCompare(b.username)
   }),
   notice: legion.notice,
@@ -271,6 +292,9 @@ const serializeLegion = (legion: Legion) => ({
   tasks: legion.tasks,
   createdAt: legion.createdAt,
   memberCount: legion.members.size,
+  visibility: legion.visibility,
+  password: legion.password,
+  joinRequests: legion.joinRequests,
   status: legion.status,
 })
 
@@ -552,6 +576,8 @@ io.on('connection', (socket: Socket) => {
     icon?: string
     iconType?: 'emoji' | 'image'
     inGameLegionId?: string
+    visibility?: 'public' | 'private'
+    password?: string
   }) => {
     const user = users.get(socket.id)
     if (!user) {
@@ -578,6 +604,17 @@ io.on('connection', (socket: Socket) => {
     for (const l of legions.values()) {
       if (l.tag === tag) {
         socket.emit('error-message', { message: `Tag [${tag}] is already taken` })
+        return
+      }
+    }
+
+    // Visibility + password
+    const visibility: LegionVisibility = data?.visibility === 'private' ? 'private' : 'public'
+    let password: string | null = null
+    if (visibility === 'private') {
+      password = (data?.password || '').trim().slice(0, 100)
+      if (!password) {
+        socket.emit('error-message', { message: 'Private legions require a password' })
         return
       }
     }
@@ -624,6 +661,9 @@ io.on('connection', (socket: Socket) => {
       createdAt: new Date().toISOString(),
       chatHistory: [],
       raidChatHistory: [],
+      visibility,
+      password,
+      joinRequests: [],
       status: 'pending', // requires admin approval
     }
     legions.set(legionId, legion)
@@ -634,7 +674,7 @@ io.on('connection', (socket: Socket) => {
 
     // Tell the leader their legion is pending approval
     socket.emit('legion:pending', serializeLegion(legion))
-    console.log(`[legion] pending approval: [${tag}] ${name} by ${user.username} (in-game ID: ${inGameLegionId})`)
+    console.log(`[legion] pending approval: [${tag}] ${name} by ${user.username} (in-game ID: ${inGameLegionId}, ${visibility})`)
 
     // Notify all admins
     broadcastPendingLegions()
@@ -649,7 +689,9 @@ io.on('connection', (socket: Socket) => {
     socket.emit('legion:list', list)
   })
 
-  socket.on('legion:join', (data: { legionId: string }) => {
+  // Request to join a legion — creates a join request that the Captain or Vice Captain must approve.
+  // For private legions, a password is required.
+  socket.on('legion:join', (data: { legionId: string; password?: string }) => {
     const user = users.get(socket.id)
     if (!user) return
     if (user.legionId) {
@@ -680,31 +722,201 @@ io.on('connection', (socket: Socket) => {
       return
     }
 
-    const member: LegionMember = {
+    // Check if already has a pending request
+    const existing = legion.joinRequests.find((r) => r.email === user.email)
+    if (existing) {
+      socket.emit('error-message', { message: 'You already have a pending join request for this legion' })
+      return
+    }
+
+    // Private legion: verify password
+    if (legion.visibility === 'private') {
+      const providedPassword = (data?.password || '').trim()
+      if (!providedPassword) {
+        socket.emit('error-message', { message: 'This legion is private. A password is required to join.' })
+        return
+      }
+      if (providedPassword !== legion.password) {
+        socket.emit('error-message', { message: 'Incorrect password' })
+        return
+      }
+    }
+
+    // Create a join request — must be approved by Captain or Vice Captain
+    const req: JoinRequest = {
+      id: generateId('req_'),
       userId: socket.id,
       username: user.username,
       avatar: user.avatar,
       level: user.level,
-      role: 'member',
-      joinedAt: new Date().toISOString(),
       email: user.email,
+      requestedAt: new Date().toISOString(),
     }
-    legion.members.set(socket.id, member)
-    userLegion.set(socket.id, legion.id)
-    user.legionId = legion.id
-    socket.join(`legion:${legion.id}`)
+    legion.joinRequests.push(req)
 
-    // Send recent chat history
-    socket.emit('legion:history', { legionId: legion.id, messages: legion.chatHistory })
+    // Notify the requester
+    socket.emit('legion:join-requested', {
+      legionId: legion.id,
+      legionName: legion.name,
+      tag: legion.tag,
+      message: `Join request sent to [${legion.tag}] ${legion.name}. The Captain or Vice Captain must approve you.`,
+    })
 
-    // Notify legion
-    const sysMsg = createSystemMessage(`legion:${legion.id}`, `${user.username} joined the legion`)
+    // Notify the legion members (Captain + Vice Captain will see it in the join requests list)
+    emitLegionUpdate(legion)
+    const sysMsg = createSystemMessage(
+      `legion:${legion.id}`,
+      `${user.username} requested to join the legion (awaiting approval)`,
+    )
     pushLegionHistory(legion, sysMsg)
     emitLegionMessage(legion, sysMsg)
 
-    socket.emit('legion:joined', serializeLegion(legion))
+    console.log(`[legion] join request: ${user.username} → [${legion.tag}] ${legion.name}`)
+  })
+
+  // Captain or Vice Captain approves a join request
+  socket.on('legion:approve-join', (data: { requestId: string }) => {
+    const user = users.get(socket.id)
+    if (!user || !user.legionId) return
+    const legion = legions.get(user.legionId)
+    if (!legion) return
+    const member = legion.members.get(socket.id)
+    if (!member || (member.role !== 'captain' && member.role !== 'vice_captain')) {
+      socket.emit('error-message', { message: 'Only the Captain or Vice Captain can approve join requests' })
+      return
+    }
+    const reqIdx = legion.joinRequests.findIndex((r) => r.id === data.requestId)
+    if (reqIdx === -1) {
+      socket.emit('error-message', { message: 'Join request not found' })
+      return
+    }
+    const [req] = legion.joinRequests.splice(reqIdx, 1)
+
+    // Check if the requester is still online
+    const requesterSocket = io.sockets.sockets.get(req.userId)
+    const requesterUser = users.get(req.userId)
+
+    if (legion.members.size >= 50) {
+      socket.emit('error-message', { message: 'Legion is full (50 members max)' })
+      return
+    }
+
+    // Add as member
+    const newMember: LegionMember = {
+      userId: req.userId,
+      username: req.username,
+      avatar: req.avatar,
+      level: req.level,
+      role: 'member',
+      joinedAt: new Date().toISOString(),
+      email: req.email,
+    }
+    legion.members.set(req.userId, newMember)
+
+    if (requesterSocket && requesterUser) {
+      requesterUser.legionId = legion.id
+      userLegion.set(req.userId, legion.id)
+      requesterSocket.join(`legion:${legion.id}`)
+      requesterSocket.emit('legion:joined', serializeLegion(legion))
+      requesterSocket.emit('legion:history', { legionId: legion.id, messages: legion.chatHistory })
+    }
+
+    const sysMsg = createSystemMessage(`legion:${legion.id}`, `${req.username} was approved and joined the legion`)
+    pushLegionHistory(legion, sysMsg)
+    emitLegionMessage(legion, sysMsg)
     emitLegionUpdate(legion)
-    console.log(`[legion] ${user.username} joined [${legion.tag}] ${legion.name}`)
+    console.log(`[legion] ${req.username} approved into [${legion.tag}] by ${user.username}`)
+  })
+
+  // Captain or Vice Captain rejects a join request
+  socket.on('legion:reject-join', (data: { requestId: string }) => {
+    const user = users.get(socket.id)
+    if (!user || !user.legionId) return
+    const legion = legions.get(user.legionId)
+    if (!legion) return
+    const member = legion.members.get(socket.id)
+    if (!member || (member.role !== 'captain' && member.role !== 'vice_captain')) {
+      socket.emit('error-message', { message: 'Only the Captain or Vice Captain can reject join requests' })
+      return
+    }
+    const reqIdx = legion.joinRequests.findIndex((r) => r.id === data.requestId)
+    if (reqIdx === -1) {
+      socket.emit('error-message', { message: 'Join request not found' })
+      return
+    }
+    const [req] = legion.joinRequests.splice(reqIdx, 1)
+
+    // Notify the requester
+    const requesterSocket = io.sockets.sockets.get(req.userId)
+    requesterSocket?.emit('error-message', {
+      message: `Your join request to [${legion.tag}] ${legion.name} was rejected`,
+    })
+
+    emitLegionUpdate(legion)
+    console.log(`[legion] ${req.username} rejected from [${legion.tag}] by ${user.username}`)
+  })
+
+  // Captain or Vice Captain sets the legion visibility (public/private) and password
+  socket.on('legion:set-visibility', (data: { visibility: 'public' | 'private'; password?: string }) => {
+    const user = users.get(socket.id)
+    if (!user || !user.legionId) return
+    const legion = legions.get(user.legionId)
+    if (!legion) return
+    const member = legion.members.get(socket.id)
+    if (!member || (member.role !== 'captain' && member.role !== 'vice_captain')) {
+      socket.emit('error-message', { message: 'Only the Captain or Vice Captain can change visibility' })
+      return
+    }
+    const newVisibility = data.visibility === 'private' ? 'private' : 'public'
+    if (newVisibility === 'private') {
+      const newPassword = (data?.password || '').trim().slice(0, 100)
+      if (!newPassword) {
+        socket.emit('error-message', { message: 'Private legions require a password' })
+        return
+      }
+      legion.password = newPassword
+    } else {
+      legion.password = null
+    }
+    legion.visibility = newVisibility
+
+    const sysMsg = createSystemMessage(
+      `legion:${legion.id}`,
+      `${user.username} set the legion to ${newVisibility}${newVisibility === 'private' ? ' (password protected)' : ''}`,
+    )
+    pushLegionHistory(legion, sysMsg)
+    emitLegionMessage(legion, sysMsg)
+    emitLegionUpdate(legion)
+    console.log(`[legion] [${legion.tag}] visibility set to ${newVisibility} by ${user.username}`)
+  })
+
+  // Captain or Vice Captain changes the password (private legions only)
+  socket.on('legion:set-password', (data: { password: string }) => {
+    const user = users.get(socket.id)
+    if (!user || !user.legionId) return
+    const legion = legions.get(user.legionId)
+    if (!legion) return
+    const member = legion.members.get(socket.id)
+    if (!member || (member.role !== 'captain' && member.role !== 'vice_captain')) {
+      socket.emit('error-message', { message: 'Only the Captain or Vice Captain can change the password' })
+      return
+    }
+    if (legion.visibility !== 'private') {
+      socket.emit('error-message', { message: 'Password can only be set for private legions' })
+      return
+    }
+    const newPassword = (data?.password || '').trim().slice(0, 100)
+    if (!newPassword) {
+      socket.emit('error-message', { message: 'Password cannot be empty' })
+      return
+    }
+    legion.password = newPassword
+
+    const sysMsg = createSystemMessage(`legion:${legion.id}`, `${user.username} changed the legion password`)
+    pushLegionHistory(legion, sysMsg)
+    emitLegionMessage(legion, sysMsg)
+    emitLegionUpdate(legion)
+    console.log(`[legion] [${legion.tag}] password changed by ${user.username}`)
   })
 
   socket.on('legion:leave', () => {
@@ -876,8 +1088,9 @@ io.on('connection', (socket: Socket) => {
     if (!user || !user.legionId) return
     const legion = legions.get(user.legionId)
     if (!legion) return
-    if (legion.leaderId !== socket.id) {
-      socket.emit('error-message', { message: 'Only the leader can post recruitment messages' })
+    const member = legion.members.get(socket.id)
+    if (!member || (member.role !== 'captain' && member.role !== 'vice_captain')) {
+      socket.emit('error-message', { message: 'Only the Captain or Vice Captain can post recruitment messages' })
       return
     }
     if (legion.status !== 'approved') {
@@ -892,7 +1105,8 @@ io.on('connection', (socket: Socket) => {
 
     // Post a formatted recruitment message to the public guilds channel
     const logoDisplay = legion.iconType === 'image' ? '[Logo]' : legion.icon
-    const recruitContent = `${logoDisplay} [${legion.tag}] ${legion.name} is recruiting!\n━ ${reason}\n━ In-game ID: ${legion.inGameLegionId}\n━ Contact leader @${user.username}`
+    const visBadge = legion.visibility === 'private' ? ' 🔒' : ''
+    const recruitContent = `${logoDisplay} [${legion.tag}] ${legion.name}${visBadge} is recruiting!\n━ ${reason}\n━ In-game ID: ${legion.inGameLegionId}\n━ ${legion.visibility === 'private' ? 'Private legion — ask captain for password' : 'Public legion — request to join'}\n━ Contact @${user.username}`
 
     const msg = createUserMessage('guilds', user, recruitContent)
     pushGameChannelHistory('guilds', msg)
@@ -900,13 +1114,13 @@ io.on('connection', (socket: Socket) => {
 
     // Confirm to the leader
     socket.emit('legion:recruit-posted', {
-      message: 'Your recruitment post was published to the Legion Recruitment channel.',
+      message: 'Your recruitment post was published to the Legion Recruitment channel. Switch to the "Legion Recruitment" channel to see it.',
     })
 
     // System message in legion chat
     const sysMsg = createSystemMessage(
       `legion:${legion.id}`,
-      `Leader ${user.username} posted a recruitment message to the Legion Recruitment channel`,
+      `${member.role === 'captain' ? 'Captain' : 'Vice Captain'} ${user.username} posted a recruitment message to the Legion Recruitment channel`,
     )
     pushLegionHistory(legion, sysMsg)
     emitLegionMessage(legion, sysMsg)
