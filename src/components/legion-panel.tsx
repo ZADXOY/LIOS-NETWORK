@@ -86,8 +86,8 @@ const TASK_STATUS_META: Record<
   in_progress: {
     label: 'In Progress',
     icon: <Loader2 className="h-3 w-3" />,
-    chipBg: 'bg-sky-500/15',
-    chipText: 'text-sky-300',
+    chipBg: 'bg-cyan-500/15',
+    chipText: 'text-cyan-300',
   },
   done: {
     label: 'Done',
@@ -98,8 +98,8 @@ const TASK_STATUS_META: Record<
   failed: {
     label: 'Failed',
     icon: <X className="h-3 w-3" />,
-    chipBg: 'bg-rose-500/15',
-    chipText: 'text-rose-300',
+    chipBg: 'bg-destructive/15',
+    chipText: 'text-destructive',
   },
 }
 
@@ -192,12 +192,12 @@ export function LegionPanel({
           />
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h2 className="truncate font-semibold leading-tight">{legion.name}</h2>
-              <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-mono font-bold text-primary">
+              <h2 className="truncate font-semibold leading-tight mono-header">{legion.name}</h2>
+              <span className="rounded-sm bg-primary/20 px-1.5 py-0.5 text-[10px] font-mono font-bold text-primary">
                 [{legion.tag}]
               </span>
               {isLeader && (
-                <Badge className="h-5 gap-1 bg-primary/20 px-1.5 text-[10px] text-primary hover:bg-primary/30">
+                <Badge className="h-5 gap-1 bg-primary/20 px-1.5 text-[10px] text-primary hover:bg-primary/30 rounded-sm">
                   <Crown className="h-3 w-3" />
                   Leader
                 </Badge>
@@ -206,8 +206,8 @@ export function LegionPanel({
                 variant="secondary"
                 className={
                   isApproved
-                    ? 'h-5 px-1.5 text-[10px] bg-accent/15 text-accent'
-                    : 'h-5 px-1.5 text-[10px] bg-primary/15 text-primary'
+                    ? 'h-5 px-1.5 text-[10px] bg-accent/15 text-accent rounded-sm'
+                    : 'h-5 px-1.5 text-[10px] bg-primary/15 text-primary rounded-sm'
                 }
               >
                 {isApproved ? 'Approved' : 'Pending'}
@@ -223,9 +223,9 @@ export function LegionPanel({
             <Button
               size="sm"
               variant="outline"
-              className="h-8 gap-1 border-primary/30 text-primary hover:bg-primary/10"
+              className="h-8 gap-1 border-primary/30 text-primary hover:bg-primary/10 rounded-sm mono-header"
               onClick={() => setRecruitOpen(true)}
-              title="Post a recruitment message to the Squad Recruitment channel"
+              title="Post a recruitment message to the Legion Recruitment channel"
             >
               <UserPlus className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Recruit</span>
@@ -235,7 +235,7 @@ export function LegionPanel({
             <Button
               size="sm"
               variant="default"
-              className="h-8 gap-1"
+              className="h-8 gap-1 rounded-sm mono-header"
               onClick={() => setTaskDialogOpen(true)}
             >
               <ClipboardList className="h-3.5 w-3.5" />
@@ -245,9 +245,9 @@ export function LegionPanel({
           <Button
             size="sm"
             variant="ghost"
-            className="h-8"
+            className="h-8 rounded-sm"
             onClick={() => onLeave()}
-            title="Leave squad"
+            title="Leave legion"
           >
             <LogOut className="h-3.5 w-3.5" />
           </Button>
@@ -255,9 +255,9 @@ export function LegionPanel({
             <Button
               size="sm"
               variant="ghost"
-              className="h-8 text-rose-400 hover:text-rose-300"
+              className="h-8 text-destructive hover:text-destructive rounded-sm"
               onClick={() => setDisbandDialogOpen(true)}
-              title="Disband squad"
+              title="Disband legion"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </Button>
@@ -280,7 +280,7 @@ export function LegionPanel({
               if (tab.id === 'raids') handleJoinRaids()
             }}
             className={cn(
-              'flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors',
+              'flex items-center gap-1.5 px-3 py-2.5 text-xs font-medium border-b-2 -mb-px transition-colors mono-header',
               activeTab === tab.id
                 ? 'border-primary text-primary'
                 : 'border-transparent text-muted-foreground hover:text-foreground',
@@ -294,19 +294,19 @@ export function LegionPanel({
 
       {/* Notice board (always visible above the tab content) */}
       {(legion.notice || isLeader) && (
-        <div className="border-b border-border/60 bg-primary/5 px-3 sm:px-4 py-2">
+        <div className="border-b border-border/60 bg-primary/5 px-3 sm:px-4 py-2 border-l-2 border-l-primary">
           <div className="flex items-start gap-2">
             <Megaphone className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">
-                  Squad Notice
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-primary mono-header">
+                  Legion Notice
                 </span>
                 {isLeader && (
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-5 px-1.5 text-[10px] text-primary hover:text-primary"
+                    className="h-5 px-1.5 text-[10px] text-primary hover:text-primary rounded-sm"
                     onClick={() => {
                       setEditingNotice((v) => !v)
                       setNoticeDraft(legion.notice || '')
@@ -322,17 +322,17 @@ export function LegionPanel({
                   <Textarea
                     value={noticeDraft}
                     onChange={(e) => setNoticeDraft(e.target.value)}
-                    placeholder="Write a notice for your squad…"
+                    placeholder="Write a notice for your legion…"
                     rows={2}
                     maxLength={500}
-                    className="text-xs"
+                    className="text-xs rounded-sm"
                     autoFocus
                   />
                   <div className="flex gap-1">
-                    <Button size="sm" className="h-6 text-[11px]" onClick={handleSaveNotice} disabled={!noticeDraft.trim()}>
+                    <Button size="sm" className="h-6 text-[11px] rounded-sm mono-header" onClick={handleSaveNotice} disabled={!noticeDraft.trim()}>
                       Save Notice
                     </Button>
-                    <Button size="sm" variant="ghost" className="h-6 text-[11px]" onClick={() => setEditingNotice(false)}>
+                    <Button size="sm" variant="ghost" className="h-6 text-[11px] rounded-sm" onClick={() => setEditingNotice(false)}>
                       Cancel
                     </Button>
                   </div>
@@ -348,7 +348,7 @@ export function LegionPanel({
                 </p>
               ) : (
                 <p className="mt-0.5 text-xs italic text-muted-foreground">
-                  No notice set. Click "Set" to broadcast an announcement to your squad.
+                  No notice set. Click "Set" to broadcast an announcement to your legion.
                 </p>
               )}
             </div>
@@ -359,16 +359,16 @@ export function LegionPanel({
       {/* Tab content */}
       {activeTab === 'chat' && (
         <>
-          <ScrollArea className="flex-1 scrollbar-hearth px-2 sm:px-4 py-3">
+          <ScrollArea className="flex-1 scrollbar-island px-2 sm:px-4 py-3">
             <div className="mx-auto max-w-3xl space-y-1">
               {messages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-                  <div className="mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-muted/40 text-3xl">
+                  <div className="mb-3 grid h-14 w-14 place-items-center rounded-sm bg-muted/40 text-3xl">
                     🛡️
                   </div>
-                  <h3 className="text-sm font-semibold">Squad chat is quiet</h3>
+                  <h3 className="text-sm font-semibold mono-header">Legion chat is quiet</h3>
                   <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-                    Send the first message to rally your squad. Only squad members can see this chat.
+                    Send the first message to rally your legion. Only legion members can see this chat.
                   </p>
                 </div>
               ) : (
@@ -413,21 +413,21 @@ export function LegionPanel({
                       handleSend()
                     }
                   }}
-                  placeholder={`Message ${legion.name} squad…`}
+                  placeholder={`Message ${legion.name} legion…`}
                   rows={1}
-                  className="min-h-[44px] max-h-40 resize-none scrollbar-hearth"
+                  className="min-h-[44px] max-h-40 resize-none scrollbar-island rounded-sm"
                 />
                 <p className="mt-1 px-1 text-[10px] text-muted-foreground">
-                  Press <kbd className="rounded bg-muted px-1 py-0.5">Enter</kbd> to send,
-                  <kbd className="ml-1 rounded bg-muted px-1 py-0.5">Shift</kbd>+
-                  <kbd className="rounded bg-muted px-1 py-0.5">Enter</kbd> for new line · Only squad members can see this
+                  Press <kbd className="rounded-sm bg-muted px-1 py-0.5">Enter</kbd> to send,
+                  <kbd className="ml-1 rounded-sm bg-muted px-1 py-0.5">Shift</kbd>+
+                  <kbd className="rounded-sm bg-muted px-1 py-0.5">Enter</kbd> for new line · Only legion members can see this
                 </p>
               </div>
               <Button
                 onClick={handleSend}
                 disabled={!draft.trim()}
                 size="icon"
-                className="h-11 w-11 shrink-0"
+                className="h-11 w-11 shrink-0 rounded-sm"
                 aria-label="Send message"
               >
                 <Send className="h-4 w-4" />
@@ -439,25 +439,25 @@ export function LegionPanel({
 
       {activeTab === 'raids' && (
         <>
-          <ScrollArea className="flex-1 scrollbar-hearth px-2 sm:px-4 py-3">
+          <ScrollArea className="flex-1 scrollbar-island px-2 sm:px-4 py-3">
             <div className="mx-auto max-w-3xl space-y-1">
-              <div className="mb-3 rounded-lg border border-rose-500/20 bg-rose-500/5 p-3">
-                <p className="flex items-center gap-1.5 text-xs font-semibold text-rose-300">
+              <div className="mb-3 rounded-sm border border-destructive/30 bg-destructive/5 p-3 border-l-2 border-l-destructive">
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-destructive mono-header">
                   <Flame className="h-3.5 w-3.5" />
-                  Squad Raid Planning
+                  Legion Raid Planning
                 </p>
                 <p className="mt-0.5 text-[11px] text-muted-foreground">
-                  Private to your squad. Coordinate attack times, target selection, and loadouts here.
+                  Private to your legion. Coordinate attack times, target selection, and loadouts here.
                 </p>
               </div>
               {raidMessages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center px-6 py-12 text-center">
-                  <div className="mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-rose-500/10 text-3xl">
+                  <div className="mb-3 grid h-14 w-14 place-items-center rounded-sm bg-destructive/10 text-3xl">
                     🔥
                   </div>
-                  <h3 className="text-sm font-semibold">No raid plans yet</h3>
+                  <h3 className="text-sm font-semibold mono-header">No raid plans yet</h3>
                   <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-                    Start planning your next raid. Discuss targets, timing, and strategy with your squad.
+                    Start planning your next raid. Discuss targets, timing, and strategy with your legion.
                   </p>
                 </div>
               ) : (
@@ -504,17 +504,17 @@ export function LegionPanel({
                   }}
                   placeholder={`Plan a raid with ${legion.name}…`}
                   rows={1}
-                  className="min-h-[44px] max-h-40 resize-none scrollbar-hearth"
+                  className="min-h-[44px] max-h-40 resize-none scrollbar-island rounded-sm"
                 />
                 <p className="mt-1 px-1 text-[10px] text-muted-foreground">
-                  Press <kbd className="rounded bg-muted px-1 py-0.5">Enter</kbd> to send · Only squad members can see this
+                  Press <kbd className="rounded-sm bg-muted px-1 py-0.5">Enter</kbd> to send · Only legion members can see this
                 </p>
               </div>
               <Button
                 onClick={handleRaidSend}
                 disabled={!raidDraft.trim()}
                 size="icon"
-                className="h-11 w-11 shrink-0"
+                className="h-11 w-11 shrink-0 rounded-sm"
                 aria-label="Send raid message"
               >
                 <Send className="h-4 w-4" />
@@ -554,20 +554,20 @@ export function LegionPanel({
 
       {/* Recruit dialog */}
       <Dialog open={recruitOpen} onOpenChange={setRecruitOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-md rounded-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
+            <DialogTitle className="flex items-center gap-2 mono-header">
               <UserPlus className="h-4 w-4 text-primary" />
               Recruit Players
             </DialogTitle>
             <DialogDescription>
               Write a recruitment pitch. It will be posted to the public{' '}
-              <strong>Squad Recruitment</strong> channel for everyone to see.
+              <strong>Legion Recruitment</strong> channel for all survivors to see.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
-            <div className="rounded-lg border border-border bg-background/40 p-2 text-xs">
-              <p className="text-muted-foreground">Your recruitment post will look like:</p>
+            <div className="rounded-sm border border-border bg-background/40 p-2 text-xs">
+              <p className="text-muted-foreground mono-header text-[10px]">Preview:</p>
               <p className="mt-1 whitespace-pre-wrap text-foreground/90">
                 {legion.iconType === 'image' ? '[Logo]' : legion.icon} [{legion.tag}] {legion.name} is recruiting!
                 <br />━ <em>{recruitReason.trim() || 'your reason here'}</em>
@@ -582,18 +582,19 @@ export function LegionPanel({
               rows={4}
               maxLength={400}
               autoFocus
+              className="rounded-sm"
             />
             <p className="text-[11px] text-muted-foreground">
               {recruitReason.length}/400 characters
             </p>
           </div>
           <DialogFooter>
-            <Button variant="ghost" onClick={() => setRecruitOpen(false)}>
+            <Button variant="ghost" onClick={() => setRecruitOpen(false)} className="rounded-sm">
               Cancel
             </Button>
-            <Button onClick={handleRecruit} disabled={!recruitReason.trim()}>
+            <Button onClick={handleRecruit} disabled={!recruitReason.trim()} className="rounded-sm mono-header">
               <UserPlus className="mr-2 h-4 w-4" />
-              Post to Squad Recruitment
+              Post to Recruitment
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -601,26 +602,26 @@ export function LegionPanel({
 
       {/* Disband dialog */}
       <AlertDialog open={disbandDialogOpen} onOpenChange={setDisbandDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Disband {legion.name}?</AlertDialogTitle>
+            <AlertDialogTitle className="mono-header">Disband {legion.name}?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently remove the squad, kick all {legion.memberCount} member
+              This will permanently remove the legion, kick all {legion.memberCount} member
               {legion.memberCount === 1 ? '' : 's'}, and delete all tasks and chat history. This
               action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-sm">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-rose-600 hover:bg-rose-700 text-white"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-sm mono-header"
               onClick={() => {
                 onDisband()
                 setDisbandDialogOpen(false)
               }}
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Disband Squad
+              Disband Legion
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -628,20 +629,20 @@ export function LegionPanel({
 
       {/* Kick member dialog */}
       <AlertDialog open={!!kickTarget} onOpenChange={(v) => !v && setKickTarget(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>
+            <AlertDialogTitle className="mono-header">
               Kick {kickTarget?.avatar} {kickTarget?.username}?
             </AlertDialogTitle>
             <AlertDialogDescription>
               This member will be removed from {legion.name} immediately. They will need to find or
-              create a new squad to rejoin. You can undo this only by re-inviting them.
+              create a new legion to rejoin. You can undo this only by re-inviting them.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-sm">Cancel</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-rose-600 hover:bg-rose-700 text-white"
+              className="bg-destructive hover:bg-destructive/90 text-destructive-foreground rounded-sm mono-header"
               onClick={() => {
                 if (kickTarget) onKick(kickTarget.userId)
                 setKickTarget(null)
@@ -661,18 +662,18 @@ function LegionMessageRow({ msg, isSelf }: { msg: ChatMessage; isSelf: boolean }
   if (msg.type === 'system') {
     return (
       <div className="msg-in flex items-center justify-center py-1.5">
-        <span className="rounded-full bg-muted/40 px-3 py-0.5 text-[11px] italic text-muted-foreground">
+        <span className="rounded-sm bg-muted/40 px-3 py-0.5 text-[11px] italic text-muted-foreground mono-header">
           ⚙️ {msg.content} · {formatTime(msg.timestamp)}
         </span>
       </div>
     )
   }
   return (
-    <div className={cn('msg-in group flex items-start gap-3 rounded-lg px-2 py-1.5 hover:bg-primary/5', isSelf && 'bg-primary/10')}>
-      <Avatar className="h-8 w-8 shrink-0">
+    <div className={cn('msg-in group flex items-start gap-3 rounded-sm px-2 py-1.5 hover:bg-primary/5', isSelf && 'bg-primary/10 border-l-2 border-l-primary')}>
+      <Avatar className="h-8 w-8 shrink-0 rounded-sm">
         <AvatarFallback
           className={cn(
-            'text-sm',
+            'text-sm rounded-sm',
             isSelf ? 'bg-primary/25 text-primary' : 'bg-muted text-foreground',
           )}
         >
@@ -685,7 +686,7 @@ function LegionMessageRow({ msg, isSelf }: { msg: ChatMessage; isSelf: boolean }
             {msg.username}
             {isSelf && <span className="ml-1 text-[10px] text-muted-foreground">(you)</span>}
           </span>
-          <span className="text-[10px] text-muted-foreground">{formatTime(msg.timestamp)}</span>
+          <span className="text-[10px] text-muted-foreground font-mono">{formatTime(msg.timestamp)}</span>
         </div>
         <p className="whitespace-pre-wrap break-words text-sm leading-snug text-foreground/90">
           {msg.content}
@@ -714,21 +715,21 @@ function TaskListPanel({
   const otherTasks = tasks.filter((t) => t.assigneeId !== currentUserId)
 
   return (
-    <ScrollArea className="flex-1 scrollbar-hearth">
+    <ScrollArea className="flex-1 scrollbar-island">
       <div className="mx-auto max-w-3xl space-y-4 p-3 sm:p-4">
         {tasks.length === 0 ? (
           <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-            <div className="mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-muted/40 text-3xl">
+            <div className="mb-3 grid h-14 w-14 place-items-center rounded-sm bg-muted/40 text-3xl">
               📋
             </div>
-            <h3 className="text-sm font-semibold">No tasks assigned yet</h3>
+            <h3 className="text-sm font-semibold mono-header">No tasks assigned yet</h3>
             <p className="mt-1 max-w-xs text-xs text-muted-foreground">
               {isLeader
-                ? 'As the leader, assign missions to your squad members to coordinate your effort.'
+                ? 'As the leader, assign missions to your legion members to coordinate your survival effort.'
                 : 'Your leader has not assigned any tasks yet. Check back later.'}
             </p>
             {isLeader && (
-              <Button size="sm" className="mt-3" onClick={onAssign}>
+              <Button size="sm" className="mt-3 rounded-sm mono-header" onClick={onAssign}>
                 <ClipboardList className="mr-2 h-3.5 w-3.5" />
                 Assign First Task
               </Button>
@@ -738,7 +739,7 @@ function TaskListPanel({
           <>
             {myTasks.length > 0 && (
               <div>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-primary">
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-primary mono-header">
                   Your Tasks ({myTasks.length})
                 </h3>
                 <div className="space-y-2">
@@ -758,8 +759,8 @@ function TaskListPanel({
 
             {otherTasks.length > 0 && (
               <div>
-                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                  Squad Tasks ({otherTasks.length})
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground mono-header">
+                  Legion Tasks ({otherTasks.length})
                 </h3>
                 <div className="space-y-2">
                   {otherTasks.map((t) => (
@@ -797,14 +798,14 @@ function TaskCard({
 }) {
   const meta = TASK_STATUS_META[task.status]
   return (
-    <div className="rounded-lg border border-border bg-card/60 p-3">
+    <div className="rounded-sm border border-border bg-card/60 p-3 border-l-2 border-l-primary/50">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <h4 className="text-sm font-semibold">{task.title}</h4>
             <span
               className={cn(
-                'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium',
+                'inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-[10px] font-medium mono-header',
                 meta.chipBg,
                 meta.chipText,
               )}
@@ -827,14 +828,14 @@ function TaskCard({
               <Crown className="h-3 w-3 text-primary" />
               By {task.assignerName}
             </span>
-            <span>· {formatTime(task.createdAt)}</span>
+            <span className="font-mono">· {formatTime(task.createdAt)}</span>
           </div>
         </div>
         {canDelete && (
           <Button
             size="icon"
             variant="ghost"
-            className="h-7 w-7 shrink-0 text-muted-foreground hover:text-rose-400"
+            className="h-7 w-7 shrink-0 text-muted-foreground hover:text-destructive rounded-sm"
             onClick={() => onDelete(task.id)}
           >
             <Trash2 className="h-3.5 w-3.5" />
@@ -848,7 +849,7 @@ function TaskCard({
             <Button
               size="sm"
               variant="outline"
-              className="h-7 gap-1 text-[11px]"
+              className="h-7 gap-1 text-[11px] rounded-sm mono-header"
               onClick={() => onUpdate(task.id, 'in_progress')}
             >
               <Flag className="h-3 w-3" />
@@ -859,7 +860,7 @@ function TaskCard({
             <Button
               size="sm"
               variant="outline"
-              className="h-7 gap-1 text-[11px]"
+              className="h-7 gap-1 text-[11px] rounded-sm mono-header"
               onClick={() => onUpdate(task.id, 'pending')}
             >
               <Clock className="h-3 w-3" />
@@ -869,7 +870,7 @@ function TaskCard({
           <Button
             size="sm"
             variant="outline"
-            className="h-7 gap-1 text-[11px] text-accent hover:text-accent"
+            className="h-7 gap-1 text-[11px] text-accent hover:text-accent rounded-sm mono-header"
             onClick={() => onUpdate(task.id, 'done')}
           >
             <Check className="h-3 w-3" />
@@ -878,7 +879,7 @@ function TaskCard({
           <Button
             size="sm"
             variant="outline"
-            className="h-7 gap-1 text-[11px] text-rose-400 hover:text-rose-300"
+            className="h-7 gap-1 text-[11px] text-destructive hover:text-destructive rounded-sm mono-header"
             onClick={() => onUpdate(task.id, 'failed')}
           >
             <X className="h-3 w-3" />
@@ -902,7 +903,7 @@ function MembersPanel({
   onKick: (m: LegionMember) => void
 }) {
   return (
-    <ScrollArea className="flex-1 scrollbar-hearth">
+    <ScrollArea className="flex-1 scrollbar-island">
       <div className="mx-auto max-w-3xl space-y-1 p-3 sm:p-4">
         {members.map((m) => {
           const isSelf = m.userId === currentUserId
@@ -911,15 +912,15 @@ function MembersPanel({
             <div
               key={m.userId}
               className={cn(
-                'flex items-center gap-3 rounded-lg border border-border bg-card/40 p-3',
-                isSelf && 'border-primary/40 bg-primary/5',
+                'flex items-center gap-3 rounded-sm border border-border bg-card/40 p-3',
+                isSelf && 'border-primary/40 bg-primary/5 border-l-2 border-l-primary',
               )}
             >
               <div className="relative">
-                <Avatar className="h-9 w-9">
-                  <AvatarFallback className="bg-muted text-sm">{m.avatar}</AvatarFallback>
+                <Avatar className="h-9 w-9 rounded-sm">
+                  <AvatarFallback className="bg-muted text-sm rounded-sm">{m.avatar}</AvatarFallback>
                 </Avatar>
-                <span className="dot-online absolute -bottom-0 -right-0 h-2.5 w-2.5 rounded-full bg-accent ring-2 ring-card" />
+                <span className="signal-pulse absolute -bottom-0 -right-0 h-2.5 w-2.5 rounded-full bg-accent ring-2 ring-card" />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2 flex-wrap">
@@ -930,21 +931,21 @@ function MembersPanel({
                     )}
                   </span>
                   {isMemberLeader ? (
-                    <Badge className="h-5 gap-1 bg-primary/20 px-1.5 text-[10px] text-primary hover:bg-primary/30">
+                    <Badge className="h-5 gap-1 bg-primary/20 px-1.5 text-[10px] text-primary hover:bg-primary/30 rounded-sm">
                       <Crown className="h-3 w-3" />
                       Leader
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[10px]">
+                    <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[10px] rounded-sm">
                       <Shield className="h-3 w-3" />
                       Member
                     </Badge>
                   )}
-                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px] rounded-sm">
                     Lv {m.level}
                   </Badge>
                 </div>
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-[10px] text-muted-foreground font-mono">
                   Joined {formatDate(m.joinedAt)}
                 </p>
               </div>
@@ -952,11 +953,11 @@ function MembersPanel({
                 <Button
                   size="sm"
                   variant="ghost"
-                  className="h-8 text-rose-400 hover:text-rose-300"
+                  className="h-8 text-destructive hover:text-destructive rounded-sm"
                   onClick={() => onKick(m)}
                 >
                   <UserMinus className="h-3.5 w-3.5" />
-                  <span className="ml-1 hidden sm:inline">Kick</span>
+                  <span className="ml-1 hidden sm:inline mono-header">Kick</span>
                 </Button>
               )}
             </div>

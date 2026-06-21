@@ -100,13 +100,13 @@ interface Legion {
 
 // ---------- Predefined game channels ----------
 const CHANNELS: ChannelDef[] = [
-  { id: 'general', name: 'Commons', description: 'Main hall for everyone', icon: '🏕️', accent: 'coral' },
-  { id: 'trading', name: 'Trade Post', description: 'Buy, sell & swap supplies', icon: '💱', accent: 'amber' },
-  { id: 'pvp', name: 'Battle Ring', description: 'Find sparring partners', icon: '⚔️', accent: 'rose' },
-  { id: 'guilds', name: 'Squad Recruitment', description: 'Recruit or join a squad', icon: '🛡️', accent: 'teal' },
-  { id: 'help', name: 'Guides & Tips', description: 'Strategies and how-tos', icon: '📜', accent: 'violet' },
-  { id: 'base-building', name: 'Base Building', description: 'Show off your fortress', icon: '🏗️', accent: 'orange' },
-  { id: 'off-topic', name: 'Campfire Talk', description: 'Anything goes', icon: '🔥', accent: 'slate' },
+  { id: 'general', name: 'General', description: 'Main chat for all survivors', icon: '🏝️', accent: 'flame' },
+  { id: 'trading', name: 'Trading Post', description: 'Buy, sell & trade loot', icon: '💱', accent: 'gold' },
+  { id: 'pvp', name: 'PvP Arena', description: 'Find duel partners and rivals', icon: '⚔️', accent: 'blood' },
+  { id: 'guilds', name: 'Legion Recruitment', description: 'Recruit or join a legion', icon: '🛡️', accent: 'olive' },
+  { id: 'help', name: 'Help & Guides', description: 'Tips, quests and strategies', icon: '📜', accent: 'cyan' },
+  { id: 'base-building', name: 'Base Building', description: 'Show off your fortress', icon: '🏗️', accent: 'rust' },
+  { id: 'off-topic', name: 'Off-Topic', description: 'Anything goes', icon: '💬', accent: 'slate' },
 ]
 
 const MAX_HISTORY = 50
@@ -405,7 +405,7 @@ io.on('connection', (socket: Socket) => {
       return
     }
     if (user.legionId) {
-      socket.emit('error-message', { message: 'You are already in a squad. Leave first.' })
+      socket.emit('error-message', { message: 'You are already in a legion. Leave first.' })
       return
     }
     const name = (data?.name || '').trim().slice(0, 30)
@@ -413,11 +413,11 @@ io.on('connection', (socket: Socket) => {
     const description = (data?.description || '').trim().slice(0, 200)
     const inGameLegionId = (data?.inGameLegionId || '').trim().slice(0, 50)
     if (!name || !tag) {
-      socket.emit('error-message', { message: 'Squad name and tag are required' })
+      socket.emit('error-message', { message: 'Legion name and tag are required' })
       return
     }
     if (!inGameLegionId) {
-      socket.emit('error-message', { message: 'In-game Squad ID is required' })
+      socket.emit('error-message', { message: 'In-game Legion ID is required' })
       return
     }
     // Ensure tag is unique
@@ -455,7 +455,7 @@ io.on('connection', (socket: Socket) => {
       id: legionId,
       name,
       tag,
-      description: description || `Squad ${name} — endurance together`,
+      description: description || `Legion ${name} — survival together`,
       icon,
       iconType: clientIconType,
       inGameLegionId,
@@ -498,20 +498,20 @@ io.on('connection', (socket: Socket) => {
     const user = users.get(socket.id)
     if (!user) return
     if (user.legionId) {
-      socket.emit('error-message', { message: 'You are already in a squad' })
+      socket.emit('error-message', { message: 'You are already in a legion' })
       return
     }
     const legion = legions.get(data.legionId)
     if (!legion) {
-      socket.emit('error-message', { message: 'Squad not found' })
+      socket.emit('error-message', { message: 'Legion not found' })
       return
     }
     if (legion.status !== 'approved') {
-      socket.emit('error-message', { message: 'This squad is not yet approved' })
+      socket.emit('error-message', { message: 'This legion is not yet approved' })
       return
     }
     if (legion.members.size >= 50) {
-      socket.emit('error-message', { message: 'Squad is full (50 members max)' })
+      socket.emit('error-message', { message: 'Legion is full (50 members max)' })
       return
     }
 
@@ -519,7 +519,7 @@ io.on('connection', (socket: Socket) => {
     const cooldownMs = legionCooldownRemaining(user.legionLeftAt)
     if (cooldownMs !== null) {
       socket.emit('error-message', {
-        message: `You left a squad recently. You can join another in ${formatCooldown(cooldownMs)}.`,
+        message: `You left a legion recently. You can join another in ${formatCooldown(cooldownMs)}.`,
         cooldownMs,
       })
       return
@@ -542,7 +542,7 @@ io.on('connection', (socket: Socket) => {
     socket.emit('legion:history', { legionId: legion.id, messages: legion.chatHistory })
 
     // Notify legion
-    const sysMsg = createSystemMessage(`legion:${legion.id}`, `${user.username} joined the squad`)
+    const sysMsg = createSystemMessage(`legion:${legion.id}`, `${user.username} joined the legion`)
     pushLegionHistory(legion, sysMsg)
     emitLegionMessage(legion, sysMsg)
 
@@ -564,7 +564,7 @@ io.on('connection', (socket: Socket) => {
     socket.emit('legion:cooldown', {
       legionLeftAt: user.legionLeftAt.toISOString(),
       cooldownMs: COOLDOWN_MS,
-      message: `You left [${legion.name}]. You can join another squad in 24 hours.`,
+      message: `You left [${legion.name}]. You can join another legion in 24 hours.`,
     })
     console.log(`[legion] ${user.username} entered 24h cooldown`)
   })
@@ -575,14 +575,14 @@ io.on('connection', (socket: Socket) => {
     const legion = legions.get(user.legionId)
     if (!legion) return
     if (legion.leaderId !== socket.id) {
-      socket.emit('error-message', { message: 'Only the leader can disband the squad' })
+      socket.emit('error-message', { message: 'Only the leader can disband the legion' })
       return
     }
 
     // Notify all members
     const sysMsg = createSystemMessage(
       `legion:${legion.id}`,
-      `Squad [${legion.tag}] ${legion.name} has been disbanded by the leader`,
+      `Legion [${legion.tag}] ${legion.name} has been disbanded by the leader`,
     )
     io.to(`legion:${legion.id}`).emit('legion:message', sysMsg)
     io.to(`legion:${legion.id}`).emit('legion:disbanded', { legionId: legion.id })
@@ -619,7 +619,7 @@ io.on('connection', (socket: Socket) => {
     }
     const target = legion.members.get(data.userId)
     if (!target) {
-      socket.emit('error-message', { message: 'Member not found in this squad' })
+      socket.emit('error-message', { message: 'Member not found in this legion' })
       return
     }
 
@@ -637,7 +637,7 @@ io.on('connection', (socket: Socket) => {
       targetSocket?.emit('legion:cooldown', {
         legionLeftAt: targetUser.legionLeftAt.toISOString(),
         cooldownMs: COOLDOWN_MS,
-        message: `You were kicked from [${legion.name}]. You can join another squad in 24 hours.`,
+        message: `You were kicked from [${legion.name}]. You can join another legion in 24 hours.`,
       })
     }
 
@@ -647,7 +647,7 @@ io.on('connection', (socket: Socket) => {
     // Notify legion
     const sysMsg = createSystemMessage(
       `legion:${legion.id}`,
-      `${target.username} was kicked from the squad`,
+      `${target.username} was kicked from the legion`,
     )
     pushLegionHistory(legion, sysMsg)
     emitLegionMessage(legion, sysMsg)
@@ -676,7 +676,7 @@ io.on('connection', (socket: Socket) => {
 
     const sysMsg = createSystemMessage(
       `legion:${legion.id}`,
-      `Leader ${user.username} updated the squad notice`,
+      `Leader ${user.username} updated the legion notice`,
     )
     pushLegionHistory(legion, sysMsg)
     emitLegionMessage(legion, sysMsg)
@@ -720,7 +720,7 @@ io.on('connection', (socket: Socket) => {
       return
     }
     if (legion.status !== 'approved') {
-      socket.emit('error-message', { message: 'Squad must be approved before recruiting' })
+      socket.emit('error-message', { message: 'Legion must be approved before recruiting' })
       return
     }
     const reason = (data?.reason || '').trim().slice(0, 400)
@@ -739,13 +739,13 @@ io.on('connection', (socket: Socket) => {
 
     // Confirm to the leader
     socket.emit('legion:recruit-posted', {
-      message: 'Your recruitment post was published to the Squad Recruitment channel.',
+      message: 'Your recruitment post was published to the Legion Recruitment channel.',
     })
 
     // System message in legion chat
     const sysMsg = createSystemMessage(
       `legion:${legion.id}`,
-      `Leader ${user.username} posted a recruitment message to the Squad Recruitment channel`,
+      `Leader ${user.username} posted a recruitment message to the Legion Recruitment channel`,
     )
     pushLegionHistory(legion, sysMsg)
     emitLegionMessage(legion, sysMsg)
@@ -804,7 +804,7 @@ io.on('connection', (socket: Socket) => {
     }
     const assignee = legion.members.get(data.assigneeId)
     if (!assignee) {
-      socket.emit('error-message', { message: 'Assignee is not a squad member' })
+      socket.emit('error-message', { message: 'Assignee is not a legion member' })
       return
     }
     const title = (data?.title || '').trim().slice(0, 120)
@@ -910,11 +910,11 @@ io.on('connection', (socket: Socket) => {
     }
     const legion = legions.get(data.legionId)
     if (!legion) {
-      socket.emit('error-message', { message: 'Squad not found' })
+      socket.emit('error-message', { message: 'Legion not found' })
       return
     }
     if (legion.status !== 'pending') {
-      socket.emit('error-message', { message: `Squad is already ${legion.status}` })
+      socket.emit('error-message', { message: `Legion is already ${legion.status}` })
       return
     }
 
@@ -927,7 +927,7 @@ io.on('connection', (socket: Socket) => {
     // System message in legion chat
     const sysMsg = createSystemMessage(
       `legion:${legion.id}`,
-      `✅ Squad has been approved by admin. You can now recruit members and post to the Squad Recruitment channel.`,
+      `✅ Legion has been approved by admin. You can now recruit members and post to the Legion Recruitment channel.`,
     )
     pushLegionHistory(legion, sysMsg)
     emitLegionMessage(legion, sysMsg)
@@ -945,11 +945,11 @@ io.on('connection', (socket: Socket) => {
     }
     const legion = legions.get(data.legionId)
     if (!legion) {
-      socket.emit('error-message', { message: 'Squad not found' })
+      socket.emit('error-message', { message: 'Legion not found' })
       return
     }
     if (legion.status !== 'pending') {
-      socket.emit('error-message', { message: `Squad is already ${legion.status}` })
+      socket.emit('error-message', { message: `Legion is already ${legion.status}` })
       return
     }
 
@@ -1075,7 +1075,7 @@ function handleLegionLeave(socket: Socket, user: User, legion: Legion, reason: '
 
   const sysMsg = createSystemMessage(
     `legion:${legion.id}`,
-    `${user.username} ${reason === 'kicked' ? 'was kicked from' : 'left'} the squad`,
+    `${user.username} ${reason === 'kicked' ? 'was kicked from' : 'left'} the legion`,
   )
   pushLegionHistory(legion, sysMsg)
   emitLegionMessage(legion, sysMsg)
@@ -1086,9 +1086,9 @@ function handleLegionLeave(socket: Socket, user: User, legion: Legion, reason: '
 
 const PORT = 3003
 httpServer.listen(PORT, () => {
-  console.log(`Hearth chat service running on port ${PORT}`)
+  console.log(`Last Island chat service running on port ${PORT}`)
   console.log(`Game channels: ${CHANNELS.map((c) => c.id).join(', ')}`)
-  console.log(`Squad system: enabled (with admin approval + 24h cooldown + raids tab)`)
+  console.log(`Legion system: enabled (with admin approval + 24h cooldown + raids tab)`)
 })
 
 const shutdown = (signal: string) => {

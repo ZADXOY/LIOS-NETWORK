@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/dialog'
 import type { Legion } from '@/lib/chat-types'
 
-// Preset squad emoji logos the leader can pick from
+// Preset legion emoji logos the leader can pick from
 const PRESET_LOGOS = [
   '🛡️', '⚔️', '🦅', '🐺', '🐉', '🔥',
   '💀', '👑', '⚜️', '🔱', '🎯', '⚡',
@@ -69,12 +69,16 @@ export function LegionOnboarding({ openLegions, onCreate, onJoin, onRefresh }: P
     <div className="flex flex-1 flex-col items-center justify-center overflow-hidden p-4 panel-in">
       <div className="w-full max-w-2xl">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl bg-primary/15 text-4xl ember-flicker">
+          <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-md bg-primary/15 text-4xl ring-1 ring-primary/30 ember-flicker">
             🛡️
           </div>
-          <h2 className="text-xl font-bold tracking-tight">Join or Found a Squad</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Squads are private groups with their own chat, member roster, and task assigner. Only
+          <div className="mb-1 inline-flex items-center gap-1.5 rounded-sm border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] mono-header text-primary">
+            <Shield className="h-2.5 w-2.5" />
+            Legion System
+          </div>
+          <h2 className="text-xl font-bold tracking-tight mono-header">Join or Found a Legion</h2>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Legions are private crews with their own chat, member roster, and task assigner. Only
             the leader can assign tasks, kick members, and post notices.
           </p>
         </div>
@@ -83,19 +87,19 @@ export function LegionOnboarding({ openLegions, onCreate, onJoin, onRefresh }: P
           {/* Create card */}
           <button
             onClick={() => setCreateOpen(true)}
-            className="group rounded-xl border border-primary/30 bg-primary/5 p-5 text-left transition-all hover:border-primary/60 hover:bg-primary/10"
+            className="group rounded-md border border-primary/30 bg-primary/5 p-5 text-left transition-all hover:border-primary/60 hover:bg-primary/10 clip-corner"
           >
-            <div className="mb-3 grid h-12 w-12 place-items-center rounded-lg bg-primary/20 text-2xl">
+            <div className="mb-3 grid h-12 w-12 place-items-center rounded-sm bg-primary/20 text-2xl">
               👑
             </div>
-            <h3 className="font-semibold text-primary">Found a Squad</h3>
+            <h3 className="font-semibold text-primary mono-header">Found a Legion</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              Start a new squad. Pick or upload a logo, become its leader — assign tasks, kick
+              Start a new legion. Pick or upload a logo, become its leader — assign tasks, kick
               members, post notices, and disband when ready.
             </p>
-            <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary">
+            <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-primary mono-header">
               <Plus className="h-3 w-3" />
-              Become a leader
+              Become a Leader
             </div>
           </button>
 
@@ -105,31 +109,31 @@ export function LegionOnboarding({ openLegions, onCreate, onJoin, onRefresh }: P
               setMode('join')
               onRefresh()
             }}
-            className="group rounded-xl border border-border bg-card/60 p-5 text-left transition-all hover:border-accent/40 hover:bg-card"
+            className="group rounded-md border border-border bg-card/60 p-5 text-left transition-all hover:border-accent/40 hover:bg-card clip-corner"
           >
-            <div className="mb-3 grid h-12 w-12 place-items-center rounded-lg bg-accent/15 text-2xl">
+            <div className="mb-3 grid h-12 w-12 place-items-center rounded-sm bg-accent/15 text-2xl">
               ⚔️
             </div>
-            <h3 className="font-semibold">Join a Squad</h3>
+            <h3 className="font-semibold mono-header">Join a Legion</h3>
             <p className="mt-1 text-xs text-muted-foreground">
-              Browse existing squads and join one as a member. The leader can assign you tasks
+              Browse existing legions and join one as a member. The leader can assign you tasks
               that you can mark in-progress or complete.
             </p>
-            <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-accent">
+            <div className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-accent mono-header">
               <LogIn className="h-3 w-3" />
-              Find a squad
+              Find a Crew
             </div>
           </button>
         </div>
 
         {mode === 'join' && (
-          <div className="mt-4 rounded-xl border border-border bg-card/60 p-4">
+          <div className="mt-4 rounded-md border border-border bg-card/60 p-4">
             <div className="mb-3 flex items-center justify-between gap-2">
-              <h3 className="text-sm font-semibold flex items-center gap-2">
+              <h3 className="text-sm font-semibold flex items-center gap-2 mono-header">
                 <Users className="h-4 w-4" />
-                Open Squads ({filtered.length})
+                Open Legions ({filtered.length})
               </h3>
-              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={onRefresh}>
+              <Button size="sm" variant="ghost" className="h-7 text-xs rounded-sm" onClick={onRefresh}>
                 <Loader2 className="mr-1 h-3 w-3" />
                 Refresh
               </Button>
@@ -141,17 +145,17 @@ export function LegionOnboarding({ openLegions, onCreate, onJoin, onRefresh }: P
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name, tag, or description…"
-                className="h-8 pl-7 text-xs"
+                className="h-8 pl-7 text-xs rounded-sm"
               />
             </div>
 
-            <ScrollArea className="h-64 scrollbar-hearth">
+            <ScrollArea className="h-64 scrollbar-island">
               <div className="space-y-2 pr-1">
                 {filtered.length === 0 ? (
                   <div className="flex flex-col items-center justify-center py-10 text-center">
                     <div className="mb-2 text-3xl">🕸️</div>
                     <p className="text-xs text-muted-foreground">
-                      No open squads found. Be the first — found one!
+                      No open legions found. Be the first — found one!
                     </p>
                   </div>
                 ) : (
@@ -163,17 +167,17 @@ export function LegionOnboarding({ openLegions, onCreate, onJoin, onRefresh }: P
         )}
 
         <div className="mt-6 grid grid-cols-3 gap-2 text-center text-[11px] text-muted-foreground">
-          <div className="rounded-lg border border-border bg-card/40 p-3">
+          <div className="rounded-sm border border-border bg-card/40 p-3">
             <div className="mb-1 text-lg">💬</div>
-            Private squad chat
+            <span className="mono-header text-[10px]">Private Chat</span>
           </div>
-          <div className="rounded-lg border border-border bg-card/40 p-3">
+          <div className="rounded-sm border border-border bg-card/40 p-3">
             <div className="mb-1 text-lg">📋</div>
-            Leader task assigner
+            <span className="mono-header text-[10px]">Task Assigner</span>
           </div>
-          <div className="rounded-lg border border-border bg-card/40 p-3">
+          <div className="rounded-sm border border-border bg-card/40 p-3">
             <div className="mb-1 text-lg">📢</div>
-            Squad notice board
+            <span className="mono-header text-[10px]">Notice Board</span>
           </div>
         </div>
       </div>
@@ -190,7 +194,7 @@ export function LegionOnboarding({ openLegions, onCreate, onJoin, onRefresh }: P
   )
 }
 
-/** Renders a squad's logo (emoji or uploaded image) at a given pixel size. */
+/** Renders a legion's logo (emoji or uploaded image) at a given pixel size. */
 export function LegionLogo({
   icon,
   iconType,
@@ -206,13 +210,12 @@ export function LegionLogo({
     return (
       <img
         src={icon}
-        alt="Squad logo"
+        alt="Legion logo"
         width={size}
         height={size}
-        className={`rounded-lg object-cover ring-1 ring-primary/30 ${className}`}
+        className={`rounded-sm object-cover ring-1 ring-primary/30 ${className}`}
         style={{ width: size, height: size }}
         onError={(e) => {
-          // Hide broken image; parent should fall back gracefully
           ;(e.currentTarget as HTMLImageElement).style.display = 'none'
         }}
       />
@@ -222,7 +225,7 @@ export function LegionLogo({
   const fontSize = Math.round(size * 0.55)
   return (
     <div
-      className={`grid place-items-center rounded-lg bg-primary/15 ring-1 ring-primary/20 ${className}`}
+      className={`grid place-items-center rounded-sm bg-primary/15 ring-1 ring-primary/20 ${className}`}
       style={{ width: size, height: size, fontSize }}
     >
       <span>{icon || '🛡️'}</span>
@@ -238,7 +241,7 @@ function LegionListCard({
   onJoin: (legionId: string) => void
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-border bg-background/40 p-3">
+    <div className="flex items-center gap-3 rounded-sm border border-border bg-background/40 p-3">
       <LegionLogo
         icon={legion.icon}
         iconType={legion.iconType || 'emoji'}
@@ -248,7 +251,7 @@ function LegionListCard({
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="truncate text-sm font-semibold">{legion.name}</span>
-          <span className="rounded bg-primary/20 px-1.5 py-0.5 text-[10px] font-mono font-bold text-primary">
+          <span className="rounded-sm bg-primary/20 px-1.5 py-0.5 text-[10px] font-mono font-bold text-primary">
             [{legion.tag}]
           </span>
           <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
@@ -258,7 +261,7 @@ function LegionListCard({
         </div>
         <p className="truncate text-xs text-muted-foreground">{legion.description}</p>
       </div>
-      <Button size="sm" className="h-8 shrink-0" onClick={() => onJoin(legion.id)}>
+      <Button size="sm" className="h-8 shrink-0 rounded-sm mono-header" onClick={() => onJoin(legion.id)}>
         <LogIn className="mr-1 h-3.5 w-3.5" />
         Join
       </Button>
@@ -318,7 +321,6 @@ function CreateLegionDialog({
       setUploadError(err instanceof Error ? err.message : 'Network error during upload')
     } finally {
       setUploading(false)
-      // Reset file input so the same file can be re-selected
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
   }
@@ -357,14 +359,14 @@ function CreateLegionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto scrollbar-hearth">
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto scrollbar-island rounded-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 mono-header">
             <Crown className="h-4 w-4 text-primary" />
-            Found a New Squad
+            Found a New Legion
           </DialogTitle>
           <DialogDescription>
-            Create a squad and become its leader. Pick a preset logo or upload your own, then
+            Create a legion and become its leader. Pick a preset logo or upload your own, then
             recruit members, assign tasks, post notices, and disband at any time.
           </DialogDescription>
         </DialogHeader>
@@ -372,18 +374,18 @@ function CreateLegionDialog({
         <div className="space-y-4 py-2">
           {/* Logo picker */}
           <div className="space-y-2">
-            <Label>Squad logo</Label>
+            <Label className="mono-header text-xs">Legion Logo</Label>
             <p className="text-xs text-muted-foreground">
               Pick a preset crest or upload your own image (PNG/JPG/WebP, max 2MB).
             </p>
 
             {/* Preview + upload trigger */}
             <div className="flex items-center gap-3">
-              <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-primary/10 ring-1 ring-primary/30">
+              <div className="grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-sm bg-primary/10 ring-1 ring-primary/30">
                 {iconType === 'image' && imageIcon ? (
                   <img
                     src={imageIcon}
-                    alt="Squad logo preview"
+                    alt="Legion logo preview"
                     className="h-full w-full object-cover"
                     onError={(e) => {
                       ;(e.currentTarget as HTMLImageElement).style.display = 'none'
@@ -405,7 +407,7 @@ function CreateLegionDialog({
                   type="button"
                   variant="outline"
                   size="sm"
-                  className="w-full"
+                  className="w-full rounded-sm"
                   disabled={uploading}
                   onClick={() => fileInputRef.current?.click()}
                 >
@@ -417,7 +419,7 @@ function CreateLegionDialog({
                   ) : (
                     <>
                       <Upload className="mr-2 h-3.5 w-3.5" />
-                      Upload custom logo
+                      Upload Custom Logo
                     </>
                   )}
                 </Button>
@@ -426,7 +428,7 @@ function CreateLegionDialog({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="w-full h-7 text-xs"
+                    className="w-full h-7 text-xs rounded-sm"
                     onClick={() => {
                       setIconType('emoji')
                       setImageIcon('')
@@ -439,15 +441,15 @@ function CreateLegionDialog({
             </div>
 
             {uploadError && (
-              <p className="text-xs text-rose-400">⚠️ {uploadError}</p>
+              <p className="text-xs text-destructive">⚠️ {uploadError}</p>
             )}
 
             {/* Preset grid — only show when not using an uploaded image */}
             {iconType !== 'image' && (
-              <div className="rounded-lg border border-border bg-background/40 p-2">
-                <p className="mb-1.5 flex items-center gap-1 px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <div className="rounded-sm border border-border bg-background/40 p-2">
+                <p className="mb-1.5 flex items-center gap-1 px-1 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mono-header">
                   <ImageIcon className="h-3 w-3" />
-                  Preset crests
+                  Preset Crests
                 </p>
                 <div className="grid grid-cols-9 gap-1">
                   {PRESET_LOGOS.map((emoji) => (
@@ -458,7 +460,7 @@ function CreateLegionDialog({
                         setEmojiIcon(emoji)
                         setIconType('emoji')
                       }}
-                      className={`grid h-8 w-8 place-items-center rounded-md text-lg transition-all ${
+                      className={`grid h-8 w-8 place-items-center rounded-sm text-lg transition-all ${
                         emojiIcon === emoji
                           ? 'bg-primary/30 ring-2 ring-primary'
                           : 'bg-muted/40 hover:bg-muted/70'
@@ -476,36 +478,37 @@ function CreateLegionDialog({
           <Separator />
 
           <div className="space-y-2">
-            <Label htmlFor="legion-name">Squad name</Label>
+            <Label htmlFor="legion-name" className="mono-header text-xs">Legion Name</Label>
             <Input
               id="legion-name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Ember Wolves"
+              placeholder="e.g. Wasteland Wolves"
               maxLength={30}
               autoFocus
+              className="rounded-sm"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="legion-tag">
-              Squad tag{' '}
-              <span className="text-xs text-muted-foreground">(2-6 letters, unique)</span>
+            <Label htmlFor="legion-tag" className="mono-header text-xs">
+              Legion Tag{' '}
+              <span className="text-muted-foreground">(2-6 letters, unique)</span>
             </Label>
             <Input
               id="legion-tag"
               value={tag}
               onChange={(e) => setTag(e.target.value.toUpperCase().slice(0, 6))}
-              placeholder="e.g. EWF"
-              className="font-mono"
+              placeholder="e.g. WLF"
+              className="font-mono rounded-sm"
               maxLength={6}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="legion-ingame-id">
-              In-game Squad ID{' '}
-              <span className="text-xs text-primary">(required)</span>
+            <Label htmlFor="legion-ingame-id" className="mono-header text-xs">
+              In-game Legion ID{' '}
+              <span className="text-primary">(required)</span>
             </Label>
             <Input
               id="legion-ingame-id"
@@ -513,62 +516,64 @@ function CreateLegionDialog({
               onChange={(e) => setInGameLegionId(e.target.value.slice(0, 50))}
               placeholder="e.g. 1234567"
               maxLength={50}
+              className="rounded-sm"
             />
             <p className="text-[11px] text-muted-foreground">
-              Enter the squad ID from your in-game profile. The admin will verify this before approving your squad.
+              Enter the legion ID from your in-game profile. The admin will verify this before approving your legion.
             </p>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="legion-desc">
-              Description <span className="text-xs text-muted-foreground">(optional)</span>
+            <Label htmlFor="legion-desc" className="mono-header text-xs">
+              Description <span className="text-muted-foreground">(optional)</span>
             </Label>
             <Textarea
               id="legion-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="What is your squad about? Recruiting raiders? Builders? Traders?"
+              placeholder="What is your legion about? Recruiting raiders? Builders? Traders?"
               rows={3}
               maxLength={200}
+              className="rounded-sm"
             />
           </div>
 
           <Separator />
 
-          <div className="rounded-lg bg-primary/5 p-3 text-xs text-primary/80">
-            <p className="flex items-center gap-1 font-semibold text-primary">
+          <div className="rounded-sm bg-primary/5 p-3 text-xs text-primary/80 border-l-2 border-primary">
+            <p className="flex items-center gap-1 font-semibold text-primary mono-header">
               <Flame className="h-3 w-3" />
-              Leader powers
+              Leader Powers
             </p>
             <ul className="mt-1 space-y-0.5 list-disc list-inside text-muted-foreground">
-              <li>Assign tasks to any squad member</li>
-              <li>Kick members from the squad</li>
-              <li>Post and edit the squad notice</li>
-              <li>Recruit players to the Squad Recruitment channel</li>
-              <li>Disband the squad (deletes everything)</li>
+              <li>Assign tasks to any legion member</li>
+              <li>Kick members from the legion</li>
+              <li>Post and edit the legion notice</li>
+              <li>Recruit players to the Legion Recruitment channel</li>
+              <li>Disband the legion (deletes everything)</li>
             </ul>
           </div>
 
-          <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 text-xs">
-            <p className="flex items-center gap-1 font-semibold text-primary">
+          <div className="rounded-sm border border-primary/30 bg-primary/10 p-3 text-xs">
+            <p className="flex items-center gap-1 font-semibold text-primary mono-header">
               <Shield className="h-3 w-3" />
-              Admin approval required
+              Admin Approval Required
             </p>
             <p className="mt-1 text-muted-foreground">
-              Your squad will be created in a <strong>pending</strong> state. The admin
+              Your legion will be created in a <strong>pending</strong> state. The admin
               (<span className="font-mono text-primary">zadxoy@gmail.com</span>) must approve it
-              before you can recruit members or post to the Squad Recruitment channel.
+              before you can recruit members or post to the Legion Recruitment channel.
             </p>
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-sm">
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!canSubmit}>
+          <Button onClick={handleSubmit} disabled={!canSubmit} className="rounded-sm mono-header">
             <Crown className="mr-2 h-4 w-4" />
-            Found Squad
+            Found Legion
           </Button>
         </DialogFooter>
       </DialogContent>

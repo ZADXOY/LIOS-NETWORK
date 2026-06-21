@@ -7,20 +7,15 @@ import {
   Users,
   Flame,
   Shield,
-  Sword,
-  Hammer,
-  ScrollText,
-  MessageCircle,
+  ShieldCheck,
   LogOut,
   Loader2,
   Wifi,
   WifiOff,
-  Search,
   Crown,
   Megaphone,
   Radio,
-  Hash,
-  ShieldCheck,
+  MessageCircle,
   PanelRightOpen,
   PanelRightClose,
   Menu,
@@ -53,77 +48,84 @@ import { AdminPanel } from '@/components/admin-panel'
 // Accent → tailwind classes map (kept explicit to keep Tailwind from purging them)
 const ACCENT_CLASSES: Record<
   string,
-  { bg: string; text: string; border: string; ring: string; chipBg: string; chipText: string; dot: string }
+  { bg: string; text: string; border: string; ring: string; chipBg: string; chipText: string; dot: string; bar: string }
 > = {
-  coral: {
+  flame: {
     bg: 'bg-primary/15',
     text: 'text-primary',
-    border: 'border-primary/30',
+    border: 'border-primary/40',
     ring: 'ring-primary/40',
     chipBg: 'bg-primary/20',
     chipText: 'text-primary',
     dot: 'bg-primary',
+    bar: 'bg-primary',
   },
-  amber: {
+  gold: {
     bg: 'bg-amber-500/15',
     text: 'text-amber-300',
-    border: 'border-amber-500/30',
+    border: 'border-amber-500/40',
     ring: 'ring-amber-500/40',
     chipBg: 'bg-amber-500/20',
     chipText: 'text-amber-200',
     dot: 'bg-amber-500',
+    bar: 'bg-amber-500',
   },
-  rose: {
-    bg: 'bg-rose-500/15',
-    text: 'text-rose-300',
-    border: 'border-rose-500/30',
-    ring: 'ring-rose-500/40',
-    chipBg: 'bg-rose-500/20',
-    chipText: 'text-rose-200',
-    dot: 'bg-rose-500',
+  blood: {
+    bg: 'bg-destructive/15',
+    text: 'text-destructive',
+    border: 'border-destructive/40',
+    ring: 'ring-destructive/40',
+    chipBg: 'bg-destructive/20',
+    chipText: 'text-destructive',
+    dot: 'bg-destructive',
+    bar: 'bg-destructive',
   },
-  teal: {
+  olive: {
     bg: 'bg-accent/15',
     text: 'text-accent',
-    border: 'border-accent/30',
+    border: 'border-accent/40',
     ring: 'ring-accent/40',
     chipBg: 'bg-accent/20',
     chipText: 'text-accent',
     dot: 'bg-accent',
+    bar: 'bg-accent',
   },
-  violet: {
-    bg: 'bg-violet-500/15',
-    text: 'text-violet-300',
-    border: 'border-violet-500/30',
-    ring: 'ring-violet-500/40',
-    chipBg: 'bg-violet-500/20',
-    chipText: 'text-violet-200',
-    dot: 'bg-violet-500',
+  cyan: {
+    bg: 'bg-cyan-500/15',
+    text: 'text-cyan-300',
+    border: 'border-cyan-500/40',
+    ring: 'ring-cyan-500/40',
+    chipBg: 'bg-cyan-500/20',
+    chipText: 'text-cyan-200',
+    dot: 'bg-cyan-500',
+    bar: 'bg-cyan-500',
   },
-  orange: {
-    bg: 'bg-orange-500/15',
-    text: 'text-orange-300',
-    border: 'border-orange-500/30',
-    ring: 'ring-orange-500/40',
-    chipBg: 'bg-orange-500/20',
-    chipText: 'text-orange-200',
-    dot: 'bg-orange-500',
+  rust: {
+    bg: 'bg-orange-700/15',
+    text: 'text-orange-400',
+    border: 'border-orange-700/40',
+    ring: 'ring-orange-700/40',
+    chipBg: 'bg-orange-700/20',
+    chipText: 'text-orange-300',
+    dot: 'bg-orange-700',
+    bar: 'bg-orange-700',
   },
   slate: {
     bg: 'bg-slate-500/15',
     text: 'text-slate-300',
-    border: 'border-slate-500/30',
+    border: 'border-slate-500/40',
     ring: 'ring-slate-500/40',
     chipBg: 'bg-slate-500/20',
     chipText: 'text-slate-200',
     dot: 'bg-slate-500',
+    bar: 'bg-slate-500',
   },
 }
 
 const accent = (token: string) => ACCENT_CLASSES[token] || ACCENT_CLASSES.slate
 
 // Sidebar section type
-type Section = 'comms' | 'squad' | 'admin'
+type Section = 'comms' | 'legion' | 'admin'
 
 export default function Home() {
   const { toast } = useToast()
@@ -134,7 +136,6 @@ export default function Home() {
   const [currentUser, setCurrentUser] = useState<ChatUser | null>(null)
   const [channels, setChannels] = useState<ChannelDef[]>([])
 
-  // Active section: 'comms' (game chat) or 'squad' (squad chat + tasks) or 'admin'
   const [activeSection, setActiveSection] = useState<Section>('comms')
 
   // Game-channel state
@@ -146,15 +147,15 @@ export default function Home() {
   )
   const [draft, setDraft] = useState('')
   const [showOnlinePanel, setShowOnlinePanel] = useState(false)
-  const [showMobileChannels, setShowMobileChannels] = useState(false)
+  const [showMobileNav, setShowMobileNav] = useState(false)
 
-  // Squad state
+  // Legion state
   const [legion, setLegion] = useState<Legion | null>(null)
   const [openLegions, setOpenLegions] = useState<Legion[]>([])
   const [legionMessages, setLegionMessages] = useState<ChatMessage[]>([])
   const [legionTyping, setLegionTyping] = useState<{ username: string; avatar: string }[]>([])
 
-  // Squad raids state
+  // Legion raids state
   const [raidMessages, setRaidMessages] = useState<ChatMessage[]>([])
   const [raidTyping, setRaidTyping] = useState<{ username: string; avatar: string }[]>([])
 
@@ -174,10 +175,8 @@ export default function Home() {
 
   // ---------- Socket setup ----------
   useEffect(() => {
-    // Ensure the chat-service mini-service is running (spawned as a child of the Next.js server)
-    fetch('/api/start-chat-service').catch(() => {
-      // non-fatal — the socket will retry
-    })
+    // Ensure the chat-service mini-service is running
+    fetch('/api/start-chat-service').catch(() => {})
 
     const sock = io('/?XTransformPort=3003', {
       transports: ['websocket', 'polling'],
@@ -201,8 +200,8 @@ export default function Home() {
         sock.emit('join-channel', { channelId: general.id })
       }
       toast({
-        title: 'Welcome to the Hearth',
-        description: `Hello, ${data.user.username}. Pick a channel or build your squad.`,
+        title: 'Welcome to the island',
+        description: `Hello, ${data.user.username}. Pick a channel or build your legion.`,
       })
     })
 
@@ -210,7 +209,6 @@ export default function Home() {
       toast({ title: 'Error', description: data.message, variant: 'destructive' })
     })
 
-    // Game-channel events
     sock.on('channel-history', (data: { channelId: string; messages: ChatMessage[] }) => {
       setMessagesByChannel((prev) => ({ ...prev, [data.channelId]: data.messages }))
     })
@@ -251,32 +249,23 @@ export default function Home() {
       })
     })
 
-    // Squad events
+    // Legion events
     sock.on('legion:created', (l: Legion) => {
       setLegion(l)
       setLegionMessages([])
-      setActiveSection('squad')
-      toast({
-        title: 'Squad founded',
-        description: `You are now the leader of [${l.tag}] ${l.name}.`,
-      })
+      setActiveSection('legion')
+      toast({ title: 'Legion founded', description: `You are now the leader of [${l.tag}] ${l.name}.` })
     })
     sock.on('legion:pending', (l: Legion) => {
       setLegion(l)
       setLegionMessages([])
-      setActiveSection('squad')
-      toast({
-        title: 'Squad submitted for approval',
-        description: `[${l.tag}] ${l.name} is pending admin approval. You'll be notified once approved.`,
-      })
+      setActiveSection('legion')
+      toast({ title: 'Legion submitted for approval', description: `[${l.tag}] ${l.name} is pending admin approval.` })
     })
     sock.on('legion:joined', (l: Legion) => {
       setLegion(l)
-      setActiveSection('squad')
-      toast({
-        title: 'Joined squad',
-        description: `You are now a member of [${l.tag}] ${l.name}.`,
-      })
+      setActiveSection('legion')
+      toast({ title: 'Joined legion', description: `You are now a member of [${l.tag}] ${l.name}.` })
     })
     sock.on('legion:history', (data: { legionId: string; messages: ChatMessage[] }) => {
       setLegionMessages(data.messages)
@@ -286,12 +275,9 @@ export default function Home() {
         if (prev.some((m) => m.id === msg.id)) return prev
         return [...prev, msg].slice(-200)
       })
-      // Clear typing for this user
       setLegionTyping((prev) => prev.filter((t) => t.username !== msg.username))
     })
-    sock.on('legion:update', (l: Legion) => {
-      setLegion(l)
-    })
+    sock.on('legion:update', (l: Legion) => setLegion(l))
     sock.on('legion:typing', (evt: { username: string; avatar: string; isTyping: boolean }) => {
       setLegionTyping((prev) => {
         if (evt.isTyping) {
@@ -300,7 +286,6 @@ export default function Home() {
         }
         return prev.filter((t) => t.username !== evt.username)
       })
-      // Auto-clear after 4s
       if (evt.isTyping) {
         if (legionTypingTimeoutRef.current) clearTimeout(legionTypingTimeoutRef.current)
         legionTypingTimeoutRef.current = setTimeout(() => {
@@ -308,9 +293,7 @@ export default function Home() {
         }, 4000)
       }
     })
-    sock.on('legion:list', (list: Legion[]) => {
-      setOpenLegions(list)
-    })
+    sock.on('legion:list', (list: Legion[]) => setOpenLegions(list))
     sock.on('legion:left', () => {
       setLegion(null)
       setLegionMessages([])
@@ -322,48 +305,29 @@ export default function Home() {
       setLegionMessages([])
       setLegionTyping([])
       setActiveSection('comms')
-      toast({
-        title: 'Kicked from squad',
-        description: `You were removed from ${data.legionName}.`,
-        variant: 'destructive',
-      })
+      toast({ title: 'Kicked from legion', description: `You were removed from ${data.legionName}.`, variant: 'destructive' })
     })
     sock.on('legion:disbanded', () => {
       setLegion(null)
       setLegionMessages([])
       setLegionTyping([])
       setActiveSection('comms')
-      toast({
-        title: 'Squad disbanded',
-        description: 'The squad has been disbanded by its leader.',
-        variant: 'destructive',
-      })
+      toast({ title: 'Legion disbanded', description: 'The legion has been disbanded by its leader.', variant: 'destructive' })
     })
 
-    // Squad approval events
     sock.on('legion:approved', (l: Legion) => {
       setLegion(l)
-      toast({
-        title: 'Squad approved!',
-        description: `[${l.tag}] ${l.name} is now live. You can recruit members and post to the Squad Recruitment channel.`,
-      })
+      toast({ title: 'Legion approved!', description: `[${l.tag}] ${l.name} is now live. You can recruit members.` })
     })
     sock.on('legion:rejected', (data: { legionId: string; legionName: string; tag: string; reason: string }) => {
       setLegion(null)
       setLegionMessages([])
       setLegionTyping([])
       setActiveSection('comms')
-      toast({
-        title: 'Squad rejected',
-        description: `[${data.tag}] ${data.legionName} was rejected by admin. Reason: ${data.reason}`,
-        variant: 'destructive',
-      })
+      toast({ title: 'Legion rejected', description: `[${data.tag}] ${data.legionName} was rejected by admin.`, variant: 'destructive' })
     })
 
-    // Squad raid chat events
-    sock.on('legion:raid:history', (data: { legionId: string; messages: ChatMessage[] }) => {
-      setRaidMessages(data.messages)
-    })
+    sock.on('legion:raid:history', (data: { legionId: string; messages: ChatMessage[] }) => setRaidMessages(data.messages))
     sock.on('legion:raid:message', (msg: ChatMessage) => {
       setRaidMessages((prev) => {
         if (prev.some((m) => m.id === msg.id)) return prev
@@ -381,25 +345,18 @@ export default function Home() {
       })
     })
 
-    // Squad recruit confirmation
     sock.on('legion:recruit-posted', (data: { message: string }) => {
       toast({ title: 'Recruitment posted', description: data.message })
     })
 
-    // Admin events
-    sock.on('admin:pending-legions', (list: Legion[]) => {
-      setAdminPendingLegions(list)
-    })
-    sock.on('admin:all-legions', (list: Legion[]) => {
-      setAdminAllLegions(list)
-    })
+    sock.on('admin:pending-legions', (list: Legion[]) => setAdminPendingLegions(list))
+    sock.on('admin:all-legions', (list: Legion[]) => setAdminAllLegions(list))
 
     return () => {
       sock.disconnect()
     }
   }, [toast])
 
-  // ---------- Auto-scroll on new message ----------
   useEffect(() => {
     if (activeSection === 'comms') {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
@@ -408,55 +365,46 @@ export default function Home() {
     }
   }, [messagesByChannel, legionMessages, activeChannel, activeSection, legion])
 
-  // ---------- Auth handler (called by AuthGate after email+password login) ----------
-  const handleAuthed = useCallback(
-    (user: AuthUser, token: string) => {
-      setAuthUser(user)
-      setAuthToken(token)
-      const sock = socketRef.current
-      if (!sock) {
-        // Socket not yet ready — retry shortly
-        setTimeout(() => {
-          const s = socketRef.current
-          if (s) {
-            s.emit('register', {
-              username: user.username,
-              email: user.email,
-              isAdmin: user.isAdmin,
-              legionLeftAt: user.legionLeftAt,
-              inGameLegionId: user.inGameLegionId,
-            })
-          }
-        }, 500)
-        return
-      }
-      sock.emit('register', {
-        username: user.username,
-        email: user.email,
-        isAdmin: user.isAdmin,
-        legionLeftAt: user.legionLeftAt,
-        inGameLegionId: user.inGameLegionId,
-      })
-    },
-    [],
-  )
+  const handleAuthed = useCallback((user: AuthUser, token: string) => {
+    setAuthUser(user)
+    setAuthToken(token)
+    const sock = socketRef.current
+    if (!sock) {
+      setTimeout(() => {
+        const s = socketRef.current
+        if (s) {
+          s.emit('register', {
+            username: user.username,
+            email: user.email,
+            isAdmin: user.isAdmin,
+            legionLeftAt: user.legionLeftAt,
+            inGameLegionId: user.inGameLegionId,
+          })
+        }
+      }, 500)
+      return
+    }
+    sock.emit('register', {
+      username: user.username,
+      email: user.email,
+      isAdmin: user.isAdmin,
+      legionLeftAt: user.legionLeftAt,
+      inGameLegionId: user.inGameLegionId,
+    })
+  }, [])
 
-  // ---------- Game channel handlers ----------
-  const handleSwitchChannel = useCallback(
-    (channel: ChannelDef) => {
-      const sock = socketRef.current
-      if (!sock || !currentUser) return
-      setActiveSection('comms')
-      setActiveChannel(channel)
-      sock.emit('join-channel', { channelId: channel.id })
-      setShowMobileChannels(false)
-    },
-    [currentUser],
-  )
+  const handleSwitchChannel = useCallback((channel: ChannelDef) => {
+    const sock = socketRef.current
+    if (!sock || !currentUser) return
+    setActiveSection('comms')
+    setActiveChannel(channel)
+    sock.emit('join-channel', { channelId: channel.id })
+    setShowMobileNav(false)
+  }, [currentUser])
 
-  const handleSelectSquad = useCallback(() => {
-    setActiveSection('squad')
-    setShowMobileChannels(false)
+  const handleSelectLegion = useCallback(() => {
+    setActiveSection('legion')
+    setShowMobileNav(false)
   }, [])
 
   const handleSend = useCallback(() => {
@@ -469,36 +417,22 @@ export default function Home() {
     lastTypingSentRef.current = 0
   }, [draft, activeChannel])
 
-  const handleDraftChange = useCallback(
-    (val: string) => {
-      setDraft(val)
-      const sock = socketRef.current
-      if (!sock || !activeChannel) return
-      const now = Date.now()
-      if (now - lastTypingSentRef.current > 1500) {
-        sock.emit('typing', { channelId: activeChannel.id, isTyping: true })
-        lastTypingSentRef.current = now
-      }
-    },
-    [activeChannel],
-  )
+  const handleDraftChange = useCallback((val: string) => {
+    setDraft(val)
+    const sock = socketRef.current
+    if (!sock || !activeChannel) return
+    const now = Date.now()
+    if (now - lastTypingSentRef.current > 1500) {
+      sock.emit('typing', { channelId: activeChannel.id, isTyping: true })
+      lastTypingSentRef.current = now
+    }
+  }, [activeChannel])
 
-  // ---------- Squad handlers ----------
-  const handleCreateLegion = useCallback(
-    (data: {
-      name: string
-      tag: string
-      description: string
-      icon?: string
-      iconType?: 'emoji' | 'image'
-      inGameLegionId?: string
-    }) => {
-      const sock = socketRef.current
-      if (!sock) return
-      sock.emit('legion:create', data)
-    },
-    [],
-  )
+  const handleCreateLegion = useCallback((data: { name: string; tag: string; description: string; icon?: string; iconType?: 'emoji' | 'image'; inGameLegionId?: string }) => {
+    const sock = socketRef.current
+    if (!sock) return
+    sock.emit('legion:create', data)
+  }, [])
 
   const handleJoinLegion = useCallback((legionId: string) => {
     const sock = socketRef.current
@@ -537,15 +471,12 @@ export default function Home() {
     const sock = socketRef.current
     if (!sock) return
     sock.emit('legion:leave')
-    // Record the cooldown timestamp on the server (auth DB)
     if (authToken) {
       fetch('/api/auth/update-cooldown', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: authToken }),
-      }).catch(() => {
-        // non-fatal — backend will still enforce via socket state
-      })
+      }).catch(() => {})
     }
   }, [authToken])
 
@@ -567,14 +498,11 @@ export default function Home() {
     sock.emit('legion:notice', { notice })
   }, [])
 
-  const handleLegionTaskAssign = useCallback(
-    (data: { assigneeId: string; title: string; description: string }) => {
-      const sock = socketRef.current
-      if (!sock) return
-      sock.emit('legion:task-assign', data)
-    },
-    [],
-  )
+  const handleLegionTaskAssign = useCallback((data: { assigneeId: string; title: string; description: string }) => {
+    const sock = socketRef.current
+    if (!sock) return
+    sock.emit('legion:task-assign', data)
+  }, [])
 
   const handleLegionTaskUpdate = useCallback((taskId: string, status: LegionTaskStatus) => {
     const sock = socketRef.current
@@ -588,14 +516,12 @@ export default function Home() {
     sock.emit('legion:task-delete', { taskId })
   }, [])
 
-  // ---------- Squad recruit handler (leader posts to Squad Recruitment channel) ----------
   const handleLegionRecruit = useCallback((reason: string) => {
     const sock = socketRef.current
     if (!sock) return
     sock.emit('legion:recruit', { reason })
   }, [])
 
-  // ---------- Squad raid handlers ----------
   const handleRaidJoin = useCallback(() => {
     const sock = socketRef.current
     if (!sock) return
@@ -614,7 +540,6 @@ export default function Home() {
     sock.emit('legion:raid:typing', { isTyping })
   }, [])
 
-  // ---------- Admin handlers (approve/reject pending squads) ----------
   const handleAdminApproveLegion = useCallback((legionId: string) => {
     const sock = socketRef.current
     if (!sock) return
@@ -629,12 +554,9 @@ export default function Home() {
 
   const handleSelectAdmin = useCallback(() => {
     setActiveSection('admin')
-    setShowMobileChannels(false)
-    // Refresh pending legions + all legions from server
+    setShowMobileNav(false)
     const sock = socketRef.current
-    if (sock) {
-      sock.emit('admin:list-pending-legions')
-    }
+    if (sock) sock.emit('admin:list-pending-legions')
   }, [])
 
   const handleLogout = useCallback(() => {
@@ -695,18 +617,17 @@ export default function Home() {
     }, 200)
   }, [])
 
-  // ---------- Render: Auth Gate (email + password) ----------
+  // ---------- Render: Auth Gate ----------
   if (!authUser) {
     return <AuthGate onAuthed={handleAuthed} />
   }
 
-  // If authed but socket not yet registered, show a brief loading state
   if (!currentUser) {
     return (
-      <div className="bg-hearth min-h-screen flex flex-col items-center justify-center px-4 text-foreground">
+      <div className="bg-island min-h-screen flex flex-col items-center justify-center px-4 text-foreground">
         <div className="flex flex-col items-center gap-3">
           <Flame className="h-8 w-8 animate-pulse text-primary ember-flicker" />
-          <p className="text-sm text-muted-foreground">Lighting the hearth…</p>
+          <p className="text-sm text-muted-foreground mono-header">Lighting the fire…</p>
         </div>
       </div>
     )
@@ -715,209 +636,205 @@ export default function Home() {
   const messages = activeChannel ? messagesByChannel[activeChannel.id] || [] : []
   const onlineUsers = activeChannel ? usersByChannel[activeChannel.id] || [] : []
   const typingList = activeChannel
-    ? Object.values(typingByChannel[activeChannel.id] || {}).filter(
-        (t) => t.username !== currentUser.username,
-      )
+    ? Object.values(typingByChannel[activeChannel.id] || {}).filter((t) => t.username !== currentUser.username)
     : []
   const a = activeChannel ? accent(activeChannel.accent) : accent('slate')
   const isLeader = legion && legion.leaderId === currentUser.id
 
-  const sectionTabs: { id: Section; label: string; icon: React.ReactNode; visible: boolean; badge?: number }[] = [
-    { id: 'comms', label: 'Comms', icon: <MessageCircle className="h-4 w-4" />, visible: true },
-    { id: 'squad', label: legion ? 'My Squad' : 'Squads', icon: <Shield className="h-4 w-4" />, visible: true },
-    { id: 'admin', label: 'Admin', icon: <ShieldCheck className="h-4 w-4" />, visible: !!authUser?.isAdmin, badge: adminPendingLegions.length },
-  ]
-
   return (
-    <div className="bg-hearth min-h-screen flex flex-col text-foreground">
-      {/* Top bar */}
-      <header className="sticky top-0 z-30 border-b border-border/60 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-3 sm:px-4">
-          <div className="flex items-center gap-2 min-w-0">
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setShowMobileChannels(true)}
-              className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-md border border-border bg-background/60 hover:bg-accent/20"
-              aria-label="Open channels"
-            >
-              <Menu className="h-4 w-4" />
-            </button>
-            <div className="flex items-center gap-2 min-w-0">
-              <img
-                src="/hearth-logo.png"
-                alt="Hearth logo"
-                className="h-8 w-8 rounded-md object-cover ring-1 ring-primary/30 ember-flicker"
-              />
-              <div className="min-w-0">
-                <h1 className="truncate text-sm font-bold leading-tight">
-                  Hearth
-                </h1>
-                <p className="hidden sm:block truncate text-[11px] text-muted-foreground leading-tight">
-                  Where squads gather
-                </p>
-              </div>
-            </div>
-          </div>
+    <div className="bg-island min-h-screen flex flex-col text-foreground">
+      <div className="flex flex-1 overflow-hidden">
+        {/* ---------- LEFT ICON RAIL (64px) — NOT Discord's server list ---------- */}
+        <aside className="hidden md:flex w-16 shrink-0 flex-col items-center border-r border-border/60 bg-sidebar/80 py-3 gap-2">
+          {/* Brand mark */}
+          <button
+            onClick={() => setActiveSection('comms')}
+            className="mb-2 grid h-11 w-11 place-items-center rounded-sm bg-primary/15 ring-1 ring-primary/40 ember-flicker"
+            title="Last Island"
+          >
+            <img src="/island-logo.png" alt="Last Island" className="h-9 w-9 rounded-sm object-cover" />
+          </button>
 
-          {/* Section tabs — desktop */}
-          <nav className="hidden md:flex items-center gap-1">
-            {sectionTabs.filter(t => t.visible).map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => tab.id === 'squad' ? handleSelectSquad() : tab.id === 'admin' ? handleSelectAdmin() : setActiveSection('comms')}
-                className={cn(
-                  'relative inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
-                  activeSection === tab.id
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-accent/10',
-                )}
-              >
-                {tab.icon}
-                {tab.label}
-                {tab.badge ? (
-                  <span className="ml-1 rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-rose-50">
-                    {tab.badge}
-                  </span>
-                ) : null}
-              </button>
-            ))}
-          </nav>
+          <div className="h-px w-8 bg-border/60 my-1" />
 
-          <div className="flex items-center gap-2">
+          {/* Comms nav */}
+          <RailButton
+            active={activeSection === 'comms'}
+            onClick={() => setActiveSection('comms')}
+            icon={<MessageCircle className="h-5 w-5" />}
+            label="Comms"
+          />
+
+          {/* Legion nav */}
+          <RailButton
+            active={activeSection === 'legion'}
+            onClick={handleSelectLegion}
+            icon={<Shield className="h-5 w-5" />}
+            label="Legion"
+            badge={legion ? legion.memberCount : undefined}
+          />
+
+          {/* Admin nav */}
+          {authUser?.isAdmin && (
+            <RailButton
+              active={activeSection === 'admin'}
+              onClick={handleSelectAdmin}
+              icon={<ShieldCheck className="h-5 w-5" />}
+              label="Admin"
+              badge={adminPendingLegions.length > 0 ? adminPendingLegions.length : undefined}
+              badgeVariant="danger"
+            />
+          )}
+
+          {/* Spacer + status */}
+          <div className="mt-auto flex flex-col items-center gap-2">
             <span
               className={cn(
-                'inline-flex items-center gap-1 rounded-full px-2 py-1 text-[11px] font-medium',
-                isConnected
-                  ? 'bg-accent/15 text-accent'
-                  : 'bg-rose-500/15 text-rose-300',
+                'inline-flex items-center justify-center rounded-sm p-1.5',
+                isConnected ? 'bg-accent/15 text-accent' : 'bg-destructive/15 text-destructive',
               )}
+              title={isConnected ? 'Signal: Online' : 'Signal: Offline'}
             >
-              {isConnected ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-              <span className="hidden sm:inline">{isConnected ? 'Online' : 'Offline'}</span>
+              {isConnected ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
             </span>
-            <div className="hidden sm:flex items-center gap-2 rounded-md border border-border bg-background/60 px-2 py-1">
-              <Avatar className="h-6 w-6">
-                <AvatarFallback className="bg-primary/20 text-primary text-xs">
-                  {currentUser.avatar}
-                </AvatarFallback>
-              </Avatar>
-              <span className="text-xs font-medium">{currentUser.username}</span>
-              <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
-                Lv {currentUser.level}
-              </Badge>
-              {legion && (
-                <Badge className="h-5 gap-1 bg-primary/20 px-1.5 text-[10px] text-primary hover:bg-primary/30">
-                  <Shield className="h-2.5 w-2.5" />
-                  [{legion.tag}]
-                </Badge>
-              )}
-            </div>
-            {activeSection === 'comms' && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowOnlinePanel((v) => !v)}
-                title="Toggle online members panel"
-                className="h-9 w-9"
-              >
-                {showOnlinePanel ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
-              </Button>
-            )}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleLogout}
-              title="Sign out"
-              className="h-9 w-9"
-            >
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        {/* Section tabs — mobile */}
-        <nav className="md:hidden flex items-center gap-1 border-t border-border/60 px-2 py-1.5">
-          {sectionTabs.filter(t => t.visible).map((tab) => (
             <button
-              key={tab.id}
-              onClick={() => tab.id === 'squad' ? handleSelectSquad() : tab.id === 'admin' ? handleSelectAdmin() : setActiveSection('comms')}
-              className={cn(
-                'relative inline-flex flex-1 items-center justify-center gap-1.5 rounded-md px-2 py-1.5 text-xs font-medium transition-colors',
-                activeSection === tab.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-accent/10',
-              )}
+              onClick={handleLogout}
+              className="grid h-10 w-10 place-items-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted/40"
+              title="Sign out"
             >
-              {tab.icon}
-              {tab.label}
-              {tab.badge ? (
-                <span className="ml-1 rounded-full bg-rose-500 px-1.5 py-0.5 text-[10px] font-bold text-rose-50">
-                  {tab.badge}
-                </span>
-              ) : null}
+              <LogOut className="h-5 w-5" />
             </button>
-          ))}
-        </nav>
-      </header>
-
-      {/* Channel pills bar — only in comms section */}
-      {activeSection === 'comms' && (
-        <div className="sticky top-[7.5rem] md:top-14 z-20 border-b border-border/60 bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="mx-auto max-w-7xl px-2 sm:px-4">
-            <ScrollArea className="w-full whitespace-nowrap scrollbar-hearth">
-              <div className="flex items-center gap-2 py-2">
-                {channels.map((c) => {
-                  const isActive = activeSection === 'comms' && activeChannel?.id === c.id
-                  const ca = accent(c.accent)
-                  const count = (usersByChannel[c.id] || []).length
-                  return (
-                    <button
-                      key={c.id}
-                      onClick={() => handleSwitchChannel(c)}
-                      className={cn(
-                        'inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all',
-                        isActive
-                          ? cn(ca.bg, ca.text, ca.border, 'shadow-sm')
-                          : 'border-border bg-card/40 text-muted-foreground hover:text-foreground hover:bg-card/70',
-                      )}
-                    >
-                      <span className="text-sm">{c.icon}</span>
-                      <span>{c.name}</span>
-                      {count > 0 && (
-                        <span className={cn(
-                          'ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold',
-                          isActive ? ca.chipBg : 'bg-muted/60 text-muted-foreground',
-                        )}>
-                          {count}
-                        </span>
-                      )}
-                    </button>
-                  )
-                })}
-              </div>
-            </ScrollArea>
           </div>
-        </div>
-      )}
+        </aside>
 
-      {/* Main content area */}
-      <main className="mx-auto flex w-full max-w-7xl flex-1 overflow-hidden px-2 sm:px-4 py-2 gap-2">
-        {/* Mobile channels drawer */}
-        {showMobileChannels && activeSection === 'comms' && (
-          <div className="md:hidden fixed inset-0 z-40 flex">
-            <div
-              className="absolute inset-0 bg-black/60"
-              onClick={() => setShowMobileChannels(false)}
-            />
-            <div className="relative z-10 w-72 max-w-[80%] flex flex-col rounded-r-xl border-l border-border bg-card shadow-xl">
-              <div className="flex items-center justify-between border-b border-border/60 p-3">
-                <h3 className="text-sm font-semibold">Channels</h3>
-                <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setShowMobileChannels(false)}>
-                  <X className="h-4 w-4" />
+        {/* ---------- MAIN COLUMN ---------- */}
+        <div className="flex flex-1 flex-col overflow-hidden min-w-0">
+          {/* Top bar */}
+          <header className="sticky top-0 z-30 border-b border-border/60 bg-card/80 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+            <div className="flex h-14 items-center justify-between gap-3 px-3 sm:px-4">
+              <div className="flex items-center gap-2 min-w-0">
+                {/* Mobile menu button */}
+                <button
+                  onClick={() => setShowMobileNav(true)}
+                  className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-sm border border-border bg-background/60 hover:bg-accent/20"
+                  aria-label="Open navigation"
+                >
+                  <Menu className="h-4 w-4" />
+                </button>
+                {/* Mobile brand */}
+                <img src="/island-logo.png" alt="Last Island" className="md:hidden h-8 w-8 rounded-sm object-cover ring-1 ring-primary/30" />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h1 className="truncate text-sm font-bold leading-tight mono-header">
+                      {activeSection === 'comms' && (activeChannel?.name || 'Comms')}
+                      {activeSection === 'legion' && (legion ? legion.name : 'Legions')}
+                      {activeSection === 'admin' && 'Admin'}
+                    </h1>
+                    {activeSection === 'comms' && activeChannel && (
+                      <span className={cn('hidden sm:inline-flex items-center gap-1 rounded-sm px-2 py-0.5 text-[10px] mono-header', a.chipBg, a.chipText)}>
+                        <Radio className="h-2.5 w-2.5" />
+                        Channel
+                      </span>
+                    )}
+                    {activeSection === 'legion' && legion && (
+                      <span className="rounded-sm bg-primary/20 px-1.5 py-0.5 text-[10px] font-mono font-bold text-primary">
+                        [{legion.tag}]
+                      </span>
+                    )}
+                  </div>
+                  <p className="truncate text-[11px] text-muted-foreground leading-tight">
+                    {activeSection === 'comms' && activeChannel?.description}
+                    {activeSection === 'legion' && (legion ? `${legion.memberCount} members · ${legion.tasks.length} tasks` : 'Join or found a legion')}
+                    {activeSection === 'admin' && 'Verify users · Approve legions'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* Player chip */}
+                <div className="hidden sm:flex items-center gap-2 rounded-sm border border-border bg-background/60 px-2 py-1">
+                  <Avatar className="h-6 w-6 rounded-sm">
+                    <AvatarFallback className="bg-primary/20 text-primary text-xs rounded-sm">
+                      {currentUser.avatar}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs font-medium font-mono">{currentUser.username}</span>
+                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px] rounded-sm font-mono">
+                    Lv {currentUser.level}
+                  </Badge>
+                  {legion && (
+                    <Badge className="h-5 gap-1 bg-primary/20 px-1.5 text-[10px] text-primary hover:bg-primary/30 rounded-sm">
+                      <Shield className="h-2.5 w-2.5" />
+                      [{legion.tag}]
+                    </Badge>
+                  )}
+                </div>
+                {/* Mobile connection dot */}
+                <span
+                  className={cn(
+                    'sm:hidden inline-flex items-center justify-center rounded-sm p-1.5',
+                    isConnected ? 'bg-accent/15 text-accent' : 'bg-destructive/15 text-destructive',
+                  )}
+                >
+                  {isConnected ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
+                </span>
+                {activeSection === 'comms' && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setShowOnlinePanel((v) => !v)}
+                    title="Toggle online survivors"
+                    className="h-9 w-9 rounded-sm"
+                  >
+                    {showOnlinePanel ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleLogout}
+                  title="Sign out"
+                  className="hidden sm:grid h-9 w-9 rounded-sm"
+                >
+                  <LogOut className="h-4 w-4" />
                 </Button>
               </div>
-              <ScrollArea className="flex-1 scrollbar-hearth">
-                <div className="space-y-1 p-2">
+            </div>
+
+            {/* Mobile nav tabs */}
+            <nav className="md:hidden flex items-center gap-1 border-t border-border/60 px-2 py-1.5">
+              {([
+                { id: 'comms' as Section, label: 'Comms', icon: <MessageCircle className="h-3.5 w-3.5" /> },
+                { id: 'legion' as Section, label: legion ? 'Legion' : 'Legions', icon: <Shield className="h-3.5 w-3.5" /> },
+                ...(authUser?.isAdmin ? [{ id: 'admin' as Section, label: 'Admin', icon: <ShieldCheck className="h-3.5 w-3.5" />, badge: adminPendingLegions.length }] : []),
+              ]).map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => tab.id === 'legion' ? handleSelectLegion() : tab.id === 'admin' ? handleSelectAdmin() : setActiveSection('comms')}
+                  className={cn(
+                    'relative inline-flex flex-1 items-center justify-center gap-1.5 rounded-sm px-2 py-1.5 text-xs font-medium transition-colors mono-header',
+                    activeSection === tab.id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-accent/10',
+                  )}
+                >
+                  {tab.icon}
+                  {tab.label}
+                  {'badge' in tab && tab.badge ? (
+                    <span className="ml-1 rounded-full bg-destructive px-1.5 py-0.5 text-[10px] font-bold text-destructive-foreground">
+                      {tab.badge}
+                    </span>
+                  ) : null}
+                </button>
+              ))}
+            </nav>
+          </header>
+
+          {/* Horizontal channel tabs — only in comms section (NOT Discord's sidebar list) */}
+          {activeSection === 'comms' && (
+            <div className="z-20 border-b border-border/60 bg-background/80 backdrop-blur">
+              <ScrollArea className="w-full whitespace-nowrap scrollbar-island">
+                <div className="flex items-center gap-1.5 px-3 sm:px-4 py-2">
                   {channels.map((c) => {
                     const isActive = activeSection === 'comms' && activeChannel?.id === c.id
                     const ca = accent(c.accent)
@@ -927,21 +844,19 @@ export default function Home() {
                         key={c.id}
                         onClick={() => handleSwitchChannel(c)}
                         className={cn(
-                          'flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left transition-colors',
+                          'inline-flex shrink-0 items-center gap-1.5 rounded-sm border px-3 py-1.5 text-xs font-medium transition-all mono-header',
                           isActive
-                            ? cn(ca.bg, ca.text, 'border', ca.border)
-                            : 'hover:bg-accent/10 border border-transparent',
+                            ? cn(ca.bg, ca.text, ca.border, 'shadow-sm')
+                            : 'border-border bg-card/40 text-muted-foreground hover:text-foreground hover:bg-card/70',
                         )}
                       >
-                        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-md text-base bg-muted/60">
-                          {c.icon}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium">{c.name}</span>
-                          <span className="block truncate text-[11px] text-muted-foreground">{c.description}</span>
-                        </span>
+                        <span className="text-sm">{c.icon}</span>
+                        <span>{c.name}</span>
                         {count > 0 && (
-                          <span className="shrink-0 rounded-full bg-background/80 px-1.5 py-0.5 text-[10px] text-muted-foreground">
+                          <span className={cn(
+                            'ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-sm px-1 text-[10px] font-bold',
+                            isActive ? ca.chipBg : 'bg-muted/60 text-muted-foreground',
+                          )}>
                             {count}
                           </span>
                         )}
@@ -951,194 +866,224 @@ export default function Home() {
                 </div>
               </ScrollArea>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Main panel: either game channel, squad, or admin */}
-        {activeSection === 'admin' && authUser?.isAdmin ? (
-          <section className="flex flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card/60 backdrop-blur min-w-0">
-            <AdminPanel
-              user={authUser}
-              token={authToken || ''}
-              onApproveLegion={handleAdminApproveLegion}
-              onRejectLegion={handleAdminRejectLegion}
-              pendingLegions={adminPendingLegions}
-              allLegions={adminAllLegions}
-            />
-          </section>
-        ) : activeSection === 'squad' && legion ? (
-          <section className="flex flex-1 flex-col overflow-hidden rounded-xl border border-primary/30 bg-card/60 backdrop-blur min-w-0">
-            <LegionPanel
-              legion={legion}
-              currentUserId={currentUser.id}
-              messages={legionMessages}
-              typingUsers={legionTyping.filter((t) => t.username !== currentUser.username)}
-              onSendMessage={handleLegionMessage}
-              onTyping={handleLegionTyping}
-              onLeave={handleLegionLeave}
-              onDisband={handleLegionDisband}
-              onKick={handleLegionKick}
-              onSetNotice={handleLegionNotice}
-              onAssignTask={handleLegionTaskAssign}
-              onUpdateTask={handleLegionTaskUpdate}
-              onDeleteTask={handleLegionTaskDelete}
-              onRecruit={handleLegionRecruit}
-              raidMessages={raidMessages}
-              raidTypingUsers={raidTyping.filter((t) => t.username !== currentUser.username)}
-              onRaidJoin={handleRaidJoin}
-              onRaidSendMessage={handleRaidSendMessage}
-              onRaidTyping={handleRaidTyping}
-            />
-          </section>
-        ) : activeSection === 'squad' && !legion ? (
-          <section className="flex flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card/60 backdrop-blur min-w-0">
-            <LegionOnboarding
-              openLegions={openLegions}
-              onCreate={handleCreateLegion}
-              onJoin={handleJoinLegion}
-              onRefresh={handleRefreshLegions}
-            />
-          </section>
-        ) : (
-          <section className="flex flex-1 flex-col overflow-hidden rounded-xl border border-border bg-card/60 backdrop-blur min-w-0">
-            {/* Channel header */}
-            <div className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
-              <div className="flex items-center gap-3 min-w-0">
-                <div
-                  className={cn(
-                    'grid h-10 w-10 shrink-0 place-items-center rounded-lg text-xl',
-                    a.bg,
-                    a.text,
-                  )}
-                >
-                  {activeChannel?.icon || '#'}
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <h2 className="truncate font-semibold leading-tight">
-                      {activeChannel?.name || '—'}
-                    </h2>
-                    <span className={cn('inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px]', a.chipBg, a.chipText)}>
-                      channel
-                    </span>
+          {/* Main panel */}
+          <main className="flex flex-1 overflow-hidden p-2 sm:p-3 gap-2">
+            {activeSection === 'admin' && authUser?.isAdmin ? (
+              <section className="flex flex-1 flex-col overflow-hidden rounded-md border border-border bg-card/60 backdrop-blur min-w-0">
+                <AdminPanel
+                  user={authUser}
+                  token={authToken || ''}
+                  onApproveLegion={handleAdminApproveLegion}
+                  onRejectLegion={handleAdminRejectLegion}
+                  pendingLegions={adminPendingLegions}
+                  allLegions={adminAllLegions}
+                />
+              </section>
+            ) : activeSection === 'legion' && legion ? (
+              <section className="flex flex-1 flex-col overflow-hidden rounded-md border border-primary/30 bg-card/60 backdrop-blur min-w-0">
+                <LegionPanel
+                  legion={legion}
+                  currentUserId={currentUser.id}
+                  messages={legionMessages}
+                  typingUsers={legionTyping.filter((t) => t.username !== currentUser.username)}
+                  onSendMessage={handleLegionMessage}
+                  onTyping={handleLegionTyping}
+                  onLeave={handleLegionLeave}
+                  onDisband={handleLegionDisband}
+                  onKick={handleLegionKick}
+                  onSetNotice={handleLegionNotice}
+                  onAssignTask={handleLegionTaskAssign}
+                  onUpdateTask={handleLegionTaskUpdate}
+                  onDeleteTask={handleLegionTaskDelete}
+                  onRecruit={handleLegionRecruit}
+                  raidMessages={raidMessages}
+                  raidTypingUsers={raidTyping.filter((t) => t.username !== currentUser.username)}
+                  onRaidJoin={handleRaidJoin}
+                  onRaidSendMessage={handleRaidSendMessage}
+                  onRaidTyping={handleRaidTyping}
+                />
+              </section>
+            ) : activeSection === 'legion' && !legion ? (
+              <section className="flex flex-1 flex-col overflow-hidden rounded-md border border-border bg-card/60 backdrop-blur min-w-0">
+                <LegionOnboarding
+                  openLegions={openLegions}
+                  onCreate={handleCreateLegion}
+                  onJoin={handleJoinLegion}
+                  onRefresh={handleRefreshLegions}
+                />
+              </section>
+            ) : (
+              <section className="flex flex-1 flex-col overflow-hidden rounded-md border border-border bg-card/60 backdrop-blur min-w-0">
+                {/* Channel header */}
+                <div className="flex items-center justify-between gap-2 border-b border-border/60 px-3 sm:px-4 py-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div
+                      className={cn(
+                        'grid h-10 w-10 shrink-0 place-items-center rounded-sm text-xl ring-1',
+                        a.bg,
+                        a.text,
+                        a.ring,
+                      )}
+                    >
+                      {activeChannel?.icon || '#'}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <h2 className="truncate font-semibold leading-tight mono-header">
+                          {activeChannel?.name || '—'}
+                        </h2>
+                      </div>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {activeChannel?.description}
+                      </p>
+                    </div>
                   </div>
-                  <p className="truncate text-xs text-muted-foreground">
-                    {activeChannel?.description}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Badge variant="outline" className="gap-1">
-                  <Users className="h-3 w-3" />
-                  {onlineUsers.length}
-                </Badge>
-              </div>
-            </div>
-
-            {/* Messages */}
-            <ScrollArea className="flex-1 scrollbar-hearth px-2 sm:px-4 py-3">
-              <div className="mx-auto max-w-3xl space-y-1">
-                {messages.length === 0 ? (
-                  <EmptyChannel channelName={activeChannel?.name || 'this channel'} />
-                ) : (
-                  messages.map((msg) => (
-                    <MessageRow
-                      key={msg.id}
-                      msg={msg}
-                      isSelf={msg.username === currentUser.username}
-                    />
-                  ))
-                )}
-                {typingList.length > 0 && (
-                  <div className="flex items-center gap-2 px-1 pt-1 text-xs text-muted-foreground">
-                    <span className="flex gap-1">
-                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/70 [animation-delay:-0.2s]" />
-                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/70 [animation-delay:-0.1s]" />
-                      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/70" />
-                    </span>
-                    <span>
-                      {typingList.length === 1
-                        ? `${typingList[0].username} is typing…`
-                        : `${typingList.length} people are typing…`}
-                    </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Badge variant="outline" className="gap-1 rounded-sm mono-header">
+                      <Users className="h-3 w-3" />
+                      {onlineUsers.length}
+                    </Badge>
                   </div>
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-            </ScrollArea>
-
-            {/* Composer */}
-            <div className="border-t border-border/60 p-3">
-              <div className="mx-auto flex max-w-3xl items-end gap-2">
-                <div className="flex-1">
-                  <Textarea
-                    value={draft}
-                    onChange={(e) => handleDraftChange(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault()
-                        handleSend()
-                      }
-                    }}
-                    placeholder={`Message #${activeChannel?.name || ''}…`}
-                    rows={1}
-                    className="min-h-[44px] max-h-40 resize-none scrollbar-hearth"
-                    disabled={!isConnected}
-                  />
-                  <p className="mt-1 px-1 text-[10px] text-muted-foreground">
-                    Press <kbd className="rounded bg-muted px-1 py-0.5">Enter</kbd> to send,
-                    <kbd className="ml-1 rounded bg-muted px-1 py-0.5">Shift</kbd>+
-                    <kbd className="rounded bg-muted px-1 py-0.5">Enter</kbd> for new line
-                  </p>
                 </div>
-                <Button
-                  onClick={handleSend}
-                  disabled={!isConnected || !draft.trim()}
-                  size="icon"
-                  className="h-11 w-11 shrink-0"
-                  aria-label="Send message"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
+
+                {/* Messages */}
+                <ScrollArea className="flex-1 scrollbar-island px-2 sm:px-4 py-3">
+                  <div className="mx-auto max-w-3xl space-y-1">
+                    {messages.length === 0 ? (
+                      <EmptyChannel channelName={activeChannel?.name || 'this channel'} />
+                    ) : (
+                      messages.map((msg) => (
+                        <MessageRow
+                          key={msg.id}
+                          msg={msg}
+                          isSelf={msg.username === currentUser.username}
+                          accentColor={a}
+                        />
+                      ))
+                    )}
+                    {typingList.length > 0 && (
+                      <div className="flex items-center gap-2 px-1 pt-1 text-xs text-muted-foreground">
+                        <span className="flex gap-1">
+                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/70 [animation-delay:-0.2s]" />
+                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/70 [animation-delay:-0.1s]" />
+                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/70" />
+                        </span>
+                        <span>
+                          {typingList.length === 1
+                            ? `${typingList[0].username} is typing…`
+                            : `${typingList.length} survivors are typing…`}
+                        </span>
+                      </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                </ScrollArea>
+
+                {/* Composer */}
+                <div className="border-t border-border/60 p-3">
+                  <div className="mx-auto flex max-w-3xl items-end gap-2">
+                    <div className="flex-1">
+                      <Textarea
+                        value={draft}
+                        onChange={(e) => handleDraftChange(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault()
+                            handleSend()
+                          }
+                        }}
+                        placeholder={`Broadcast on #${activeChannel?.name || ''}…`}
+                        rows={1}
+                        className="min-h-[44px] max-h-40 resize-none scrollbar-island rounded-sm"
+                        disabled={!isConnected}
+                      />
+                      <p className="mt-1 px-1 text-[10px] text-muted-foreground">
+                        Press <kbd className="rounded-sm bg-muted px-1 py-0.5">Enter</kbd> to broadcast,
+                        <kbd className="ml-1 rounded-sm bg-muted px-1 py-0.5">Shift</kbd>+
+                        <kbd className="rounded-sm bg-muted px-1 py-0.5">Enter</kbd> for new line
+                      </p>
+                    </div>
+                    <Button
+                      onClick={handleSend}
+                      disabled={!isConnected || !draft.trim()}
+                      size="icon"
+                      className="h-11 w-11 shrink-0 rounded-sm"
+                      aria-label="Send message"
+                    >
+                      <Send className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {/* Right rail — online survivors (togglable, NOT persistent like Discord) */}
+            {activeSection === 'comms' && showOnlinePanel && (
+              <aside className="hidden md:flex w-64 flex-col rounded-md border border-border bg-card/60 backdrop-blur">
+                <OnlineUsers users={onlineUsers} currentUser={currentUser} onClose={() => setShowOnlinePanel(false)} />
+              </aside>
+            )}
+
+            {/* Mobile online drawer */}
+            {activeSection === 'comms' && showOnlinePanel && (
+              <div className="md:hidden fixed inset-0 z-40 flex justify-end">
+                <div className="absolute inset-0 bg-black/60" onClick={() => setShowOnlinePanel(false)} />
+                <div className="relative z-10 w-72 max-w-[80%] flex flex-col rounded-l-md border-r border-border bg-card shadow-xl">
+                  <OnlineUsers users={onlineUsers} currentUser={currentUser} onClose={() => setShowOnlinePanel(false)} />
+                </div>
               </div>
-            </div>
-          </section>
-        )}
+            )}
+          </main>
+        </div>
+      </div>
 
-        {/* Right rail — online users (togglable) */}
-        {activeSection === 'comms' && showOnlinePanel && (
-          <aside className="hidden md:flex w-64 flex-col rounded-xl border border-border bg-card/60 backdrop-blur">
-            <OnlineUsers users={onlineUsers} currentUser={currentUser} />
-          </aside>
-        )}
-
-        {/* Mobile online users drawer */}
-        {activeSection === 'comms' && showOnlinePanel && (
-          <div className="md:hidden fixed inset-0 z-40 flex justify-end">
-            <div
-              className="absolute inset-0 bg-black/60"
-              onClick={() => setShowOnlinePanel(false)}
-            />
-            <div className="relative z-10 w-72 max-w-[80%] flex flex-col rounded-l-xl border-r border-border bg-card shadow-xl">
-              <OnlineUsers users={onlineUsers} currentUser={currentUser} />
+      {/* Mobile nav drawer */}
+      {showMobileNav && (
+        <div className="md:hidden fixed inset-0 z-40 flex">
+          <div className="absolute inset-0 bg-black/60" onClick={() => setShowMobileNav(false)} />
+          <div className="relative z-10 w-16 flex flex-col items-center border-r border-border bg-sidebar py-3 gap-2">
+            <button
+              onClick={() => { setActiveSection('comms'); setShowMobileNav(false) }}
+              className="grid h-11 w-11 place-items-center rounded-sm bg-primary/15 ring-1 ring-primary/40 mb-2"
+            >
+              <img src="/island-logo.png" alt="Last Island" className="h-9 w-9 rounded-sm object-cover" />
+            </button>
+            <div className="h-px w-8 bg-border/60 my-1" />
+            <RailButton active={activeSection === 'comms'} onClick={() => { setActiveSection('comms'); setShowMobileNav(false) }} icon={<MessageCircle className="h-5 w-5" />} label="Comms" />
+            <RailButton active={activeSection === 'legion'} onClick={() => { handleSelectLegion(); }} icon={<Shield className="h-5 w-5" />} label="Legion" badge={legion ? legion.memberCount : undefined} />
+            {authUser?.isAdmin && (
+              <RailButton active={activeSection === 'admin'} onClick={() => { handleSelectAdmin(); }} icon={<ShieldCheck className="h-5 w-5" />} label="Admin" badge={adminPendingLegions.length > 0 ? adminPendingLegions.length : undefined} badgeVariant="danger" />
+            )}
+            <div className="mt-auto flex flex-col items-center gap-2">
+              <span className={cn('inline-flex items-center justify-center rounded-sm p-1.5', isConnected ? 'bg-accent/15 text-accent' : 'bg-destructive/15 text-destructive')}>
+                {isConnected ? <Wifi className="h-4 w-4" /> : <WifiOff className="h-4 w-4" />}
+              </span>
+              <button onClick={() => { handleLogout(); }} className="grid h-10 w-10 place-items-center rounded-sm text-muted-foreground hover:text-foreground hover:bg-muted/40" title="Sign out">
+                <LogOut className="h-5 w-5" />
+              </button>
             </div>
           </div>
-        )}
-      </main>
+          <button onClick={() => setShowMobileNav(false)} className="flex-1 flex items-start justify-end p-3">
+            <X className="h-5 w-5 text-foreground/60" />
+          </button>
+        </div>
+      )}
 
       {/* Footer — sticky to bottom */}
       <footer className="mt-auto border-t border-border/60 bg-card/40 px-4 py-2">
         <div className="mx-auto flex max-w-7xl items-center justify-between text-[11px] text-muted-foreground">
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1.5 mono-header">
             <Flame className="h-3 w-3 text-primary" />
-            Tend the fire. The hearth never sleeps.
+            Stay Alert · The Island Never Sleeps
           </span>
-          <span className="hidden sm:inline">
-            {activeSection === 'squad' && legion
-              ? `In squad [${legion.tag}] ${legion.name} · ${legion.memberCount} members · ${legion.tasks.length} tasks`
+          <span className="hidden sm:inline font-mono">
+            {activeSection === 'legion' && legion
+              ? `In legion [${legion.tag}] ${legion.name} · ${legion.memberCount} members · ${legion.tasks.length} tasks`
               : activeSection === 'admin'
-                ? `${adminPendingLegions.length} pending approvals · ${adminAllLegions.length} total squads`
-                : `${onlineUsers.length} online in #${activeChannel?.name || ''}`}
+                ? `${adminPendingLegions.length} pending approvals · ${adminAllLegions.length} total legions`
+                : `${onlineUsers.length} survivors in #${activeChannel?.name || ''}`}
           </span>
         </div>
       </footer>
@@ -1148,22 +1093,72 @@ export default function Home() {
 
 /* ----------------------------- Sub-components ----------------------------- */
 
-function MessageRow({ msg, isSelf }: { msg: ChatMessage; isSelf: boolean }) {
+/** Left rail icon button (NOT a Discord server icon) */
+function RailButton({
+  active,
+  onClick,
+  icon,
+  label,
+  badge,
+  badgeVariant = 'default',
+}: {
+  active: boolean
+  onClick: () => void
+  icon: React.ReactNode
+  label: string
+  badge?: number
+  badgeVariant?: 'default' | 'danger'
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'group relative grid h-11 w-11 place-items-center rounded-sm transition-all',
+        active
+          ? 'bg-primary/20 text-primary ring-1 ring-primary/40'
+          : 'text-muted-foreground hover:text-foreground hover:bg-muted/40',
+      )}
+      title={label}
+    >
+      {/* Active left bar indicator */}
+      {active && <span className="absolute -left-3 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-sm bg-primary" />}
+      {icon}
+      {badge ? (
+        <span
+          className={cn(
+            'absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] font-bold',
+            badgeVariant === 'danger'
+              ? 'bg-destructive text-destructive-foreground'
+              : 'bg-accent text-accent-foreground',
+          )}
+        >
+          {badge}
+        </span>
+      ) : null}
+      {/* Tooltip label on hover (desktop) */}
+      <span className="pointer-events-none absolute left-12 z-50 hidden whitespace-nowrap rounded-sm border border-border bg-popover px-2 py-1 text-[11px] text-foreground shadow-md group-hover:block mono-header">
+        {label}
+      </span>
+    </button>
+  )
+}
+
+function MessageRow({ msg, isSelf, accentColor }: { msg: ChatMessage; isSelf: boolean; accentColor: typeof ACCENT_CLASSES[keyof typeof ACCENT_CLASSES] }) {
   if (msg.type === 'system') {
     return (
       <div className="msg-in flex items-center justify-center py-1.5">
-        <span className="rounded-full bg-muted/40 px-3 py-0.5 text-[11px] italic text-muted-foreground">
+        <span className="rounded-sm bg-muted/40 px-3 py-0.5 text-[11px] italic text-muted-foreground mono-header">
           ⚙️ {msg.content} · {formatTime(msg.timestamp)}
         </span>
       </div>
     )
   }
   return (
-    <div className={cn('msg-in group flex items-start gap-3 rounded-lg px-2 py-1.5 hover:bg-accent/5', isSelf && 'bg-primary/5')}>
-      <Avatar className="h-8 w-8 shrink-0">
+    <div className={cn('msg-in group flex items-start gap-3 rounded-sm px-2 py-1.5 hover:bg-accent/5', isSelf && cn(accentColor.bg, 'border-l-2', accentColor.bar ? '' : ''))}>
+      <Avatar className="h-8 w-8 shrink-0 rounded-sm">
         <AvatarFallback
           className={cn(
-            'text-sm',
+            'text-sm rounded-sm',
             isSelf ? 'bg-primary/25 text-primary' : 'bg-muted text-foreground',
           )}
         >
@@ -1176,7 +1171,7 @@ function MessageRow({ msg, isSelf }: { msg: ChatMessage; isSelf: boolean }) {
             {msg.username}
             {isSelf && <span className="ml-1 text-[10px] text-muted-foreground">(you)</span>}
           </span>
-          <span className="text-[10px] text-muted-foreground">{formatTime(msg.timestamp)}</span>
+          <span className="text-[10px] text-muted-foreground font-mono">{formatTime(msg.timestamp)}</span>
         </div>
         <p className="whitespace-pre-wrap break-words text-sm leading-snug text-foreground/90">
           {msg.content}
@@ -1189,12 +1184,12 @@ function MessageRow({ msg, isSelf }: { msg: ChatMessage; isSelf: boolean }) {
 function EmptyChannel({ channelName }: { channelName: string }) {
   return (
     <div className="flex flex-col items-center justify-center px-6 py-16 text-center">
-      <div className="mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-muted/40 text-3xl">
+      <div className="mb-3 grid h-14 w-14 place-items-center rounded-sm bg-muted/40 text-3xl">
         📭
       </div>
-      <h3 className="text-sm font-semibold">No messages yet in #{channelName}</h3>
+      <h3 className="text-sm font-semibold mono-header">No transmissions in #{channelName}</h3>
       <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-        Be the first to break the silence. Send a message below to start the conversation.
+        Be the first to break the silence. Broadcast a message below to start the conversation.
       </p>
     </div>
   )
@@ -1203,9 +1198,11 @@ function EmptyChannel({ channelName }: { channelName: string }) {
 function OnlineUsers({
   users,
   currentUser,
+  onClose,
 }: {
   users: ChatUser[]
   currentUser: ChatUser
+  onClose?: () => void
 }) {
   const sorted = [...users].sort((a, b) => {
     if (a.id === currentUser.id) return -1
@@ -1215,19 +1212,24 @@ function OnlineUsers({
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center justify-between border-b border-border/60 px-3 py-3">
-        <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        <h3 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground mono-header">
           <Users className="h-3.5 w-3.5" />
-          Online Now
+          Survivors Online
         </h3>
-        <Badge variant="secondary" className="text-[10px]">
-          {users.length}
-        </Badge>
+        <div className="flex items-center gap-1">
+          <Badge variant="secondary" className="text-[10px] rounded-sm">{users.length}</Badge>
+          {onClose && (
+            <Button size="icon" variant="ghost" className="h-6 w-6 rounded-sm" onClick={onClose}>
+              <X className="h-3.5 w-3.5" />
+            </Button>
+          )}
+        </div>
       </div>
-      <ScrollArea className="flex-1 scrollbar-hearth">
+      <ScrollArea className="flex-1 scrollbar-island">
         <div className="space-y-1 p-2">
           {sorted.length === 0 ? (
-            <p className="px-2 py-4 text-center text-xs text-muted-foreground">
-              No one online yet.
+            <p className="px-2 py-4 text-center text-xs text-muted-foreground mono-header">
+              No survivors online yet.
             </p>
           ) : (
             sorted.map((u) => {
@@ -1236,27 +1238,25 @@ function OnlineUsers({
                 <div
                   key={u.id}
                   className={cn(
-                    'flex items-center gap-2 rounded-lg px-2 py-1.5',
+                    'flex items-center gap-2 rounded-sm px-2 py-1.5',
                     isSelf ? 'bg-primary/10' : 'hover:bg-accent/10',
                   )}
                 >
                   <div className="relative">
-                    <Avatar className="h-7 w-7">
-                      <AvatarFallback className="bg-muted text-xs">{u.avatar}</AvatarFallback>
+                    <Avatar className="h-7 w-7 rounded-sm">
+                      <AvatarFallback className="bg-muted text-xs rounded-sm">{u.avatar}</AvatarFallback>
                     </Avatar>
-                    <span className="dot-online absolute -bottom-0 -right-0 h-2.5 w-2.5 rounded-full bg-accent ring-2 ring-card" />
+                    <span className="signal-pulse absolute -bottom-0 -right-0 h-2.5 w-2.5 rounded-full bg-accent ring-2 ring-card" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1">
-                      <span className="truncate text-xs font-medium">
+                      <span className="truncate text-xs font-medium font-mono">
                         {u.username}
-                        {isSelf && (
-                          <span className="ml-1 text-[10px] text-muted-foreground">(you)</span>
-                        )}
+                        {isSelf && <span className="ml-1 text-[10px] text-muted-foreground">(you)</span>}
                       </span>
                     </div>
                     <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <Badge variant="outline" className="h-4 px-1 text-[9px]">
+                      <Badge variant="outline" className="h-4 px-1 text-[9px] rounded-sm font-mono">
                         Lv {u.level}
                       </Badge>
                     </div>
@@ -1268,10 +1268,10 @@ function OnlineUsers({
         </div>
       </ScrollArea>
       <Separator />
-      <div className="p-3 text-[11px] text-muted-foreground">
+      <div className="p-3 text-[11px] text-muted-foreground mono-header">
         <p className="flex items-center gap-1">
-          <span className="h-2 w-2 rounded-full bg-accent" />
-          Online now
+          <span className="signal-pulse h-2 w-2 rounded-full bg-accent" />
+          Online Now
         </p>
       </div>
     </div>

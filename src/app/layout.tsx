@@ -14,21 +14,22 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Hearth — Where Squads Gather",
+  title: "Last Island — Survivor Comms Network",
   description:
-    "Hearth is a real-time gathering place for survivors. Coordinate in themed channels, build your squad, plan raids, assign tasks, and endure together.",
+    "Real-time survival comms for Last Island of Survival. Find legions, trade loot, plan raids, assign tasks, and survive the island together.",
   keywords: [
-    "Hearth",
-    "squad chat",
-    "community chat",
-    "squad building",
-    "raid planning",
-    "task assigner",
-    "real-time chat",
+    "Last Island of Survival",
+    "survival game",
+    "game chat",
+    "legion recruitment",
+    "PvP",
+    "trading",
+    "raids",
+    "survivor comms",
   ],
-  authors: [{ name: "Hearth Comms" }],
+  authors: [{ name: "Island Comms" }],
   icons: {
-    icon: "/hearth-logo.png",
+    icon: "/island-logo.png",
   },
 };
 

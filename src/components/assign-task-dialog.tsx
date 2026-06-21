@@ -57,24 +57,24 @@ export function AssignTaskDialog({ open, onOpenChange, members, onAssign }: Prop
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md rounded-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 mono-header">
             <ClipboardList className="h-4 w-4 text-primary" />
-            Assign Squad Task
+            Assign Legion Task
           </DialogTitle>
           <DialogDescription>
-            Delegate a mission to a squad member. They will see it in their task list and can
+            Delegate a mission to a legion member. They will see it in their task list and can
             update its status.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
           <div className="space-y-2">
-            <Label htmlFor="assignee">Assign to</Label>
+            <Label htmlFor="assignee" className="mono-header text-xs">Assign To</Label>
             <Select value={assigneeId} onValueChange={setAssigneeId}>
-              <SelectTrigger id="assignee" className="w-full">
-                <SelectValue placeholder="Select a squad member…" />
+              <SelectTrigger id="assignee" className="w-full rounded-sm">
+                <SelectValue placeholder="Select a legion member…" />
               </SelectTrigger>
               <SelectContent>
                 {assignableMembers.length === 0 ? (
@@ -95,18 +95,19 @@ export function AssignTaskDialog({ open, onOpenChange, members, onAssign }: Prop
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="title">Task title</Label>
+            <Label htmlFor="title" className="mono-header text-xs">Task Title</Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Gather 500 wood for the barricade"
               maxLength={120}
+              className="rounded-sm"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description (optional)</Label>
+            <Label htmlFor="description" className="mono-header text-xs">Description (Optional)</Label>
             <Textarea
               id="description"
               value={description}
@@ -114,17 +115,19 @@ export function AssignTaskDialog({ open, onOpenChange, members, onAssign }: Prop
               placeholder="Add details, location, deadline, or special instructions…"
               rows={3}
               maxLength={400}
+              className="rounded-sm"
             />
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" onClick={() => onOpenChange(false)} className="rounded-sm">
             Cancel
           </Button>
           <Button
             onClick={handleSubmit}
             disabled={!assigneeId || !title.trim() || submitting}
+            className="rounded-sm mono-header"
           >
             {submitting ? (
               <>

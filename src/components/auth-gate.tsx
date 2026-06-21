@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Flame, Loader2, Mail, Lock, User, ShieldCheck, AlertCircle } from 'lucide-react'
+import { Flame, Loader2, Mail, Lock, User, ShieldCheck, AlertCircle, Radio } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import type { AuthUser } from '@/lib/chat-types'
 
-const TOKEN_KEY = 'hearth-token'
+const TOKEN_KEY = 'island-token'
 
 interface Props {
   onAuthed: (user: AuthUser, token: string) => void
@@ -79,7 +79,6 @@ export function AuthGate({ onAuthed }: Props) {
       }
 
       if (mode === 'signup') {
-        // For signup, store token and authed user
         if (data.token && data.user) {
           localStorage.setItem(TOKEN_KEY, data.token)
           if (data.user.verified) {
@@ -90,7 +89,6 @@ export function AuthGate({ onAuthed }: Props) {
           }
         }
       } else {
-        // Login success
         if (data.token && data.user) {
           localStorage.setItem(TOKEN_KEY, data.token)
           onAuthed(data.user, data.token)
@@ -104,28 +102,32 @@ export function AuthGate({ onAuthed }: Props) {
   }
 
   return (
-    <div className="bg-hearth min-h-screen flex flex-col items-center justify-center px-4 text-foreground">
+    <div className="bg-island min-h-screen flex flex-col items-center justify-center px-4 text-foreground">
       <div className="w-full max-w-md">
         <div className="mb-6 text-center">
           <img
-            src="/hearth-logo.png"
-            alt="Hearth logo"
-            className="mx-auto mb-4 h-16 w-16 rounded-2xl object-cover ring-1 ring-primary/40 shadow-lg ember-flicker"
+            src="/island-logo.png"
+            alt="Last Island logo"
+            className="mx-auto mb-4 h-20 w-20 rounded-md object-cover ring-2 ring-primary/40 shadow-2xl ember-flicker"
           />
-          <h1 className="text-3xl font-bold tracking-tight">
-            <span className="text-primary">Hearth</span>
+          <div className="mb-1 inline-flex items-center gap-1.5 rounded-sm border border-primary/30 bg-primary/10 px-2 py-0.5 text-[10px] mono-header text-primary">
+            <Radio className="h-2.5 w-2.5" />
+            Survivor Comms Network
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight mono-header">
+            Last <span className="text-primary">Island</span>
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Where squads gather, plan, and endure.
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Coordinate. Trade. Raid. Survive the island together.
           </p>
         </div>
 
         {/* Mode toggle */}
-        <div className="mb-4 flex rounded-lg border border-border bg-card/40 p-1">
+        <div className="mb-4 flex rounded-sm border border-border bg-card/40 p-0.5">
           <button
             type="button"
             onClick={() => { setMode('login'); setError(null); setInfo(null) }}
-            className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
+            className={`flex-1 rounded-sm py-2 text-sm font-medium mono-header transition-colors ${
               mode === 'login' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -134,7 +136,7 @@ export function AuthGate({ onAuthed }: Props) {
           <button
             type="button"
             onClick={() => { setMode('signup'); setError(null); setInfo(null) }}
-            className={`flex-1 rounded-md py-2 text-sm font-medium transition-colors ${
+            className={`flex-1 rounded-sm py-2 text-sm font-medium mono-header transition-colors ${
               mode === 'signup' ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
             }`}
           >
@@ -142,19 +144,19 @@ export function AuthGate({ onAuthed }: Props) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-card/70 p-6 backdrop-blur shadow-xl space-y-4">
+        <form onSubmit={handleSubmit} className="rounded-md border border-border bg-card/80 p-6 backdrop-blur shadow-2xl space-y-4">
           {mode === 'signup' && (
             <div className="space-y-2">
-              <Label htmlFor="username">Survivor name</Label>
+              <Label htmlFor="username" className="mono-header text-xs">Survivor Name</Label>
               <div className="relative">
                 <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="e.g. EmberFox"
+                  placeholder="e.g. WastelandWolf"
                   maxLength={24}
-                  className="pl-9"
+                  className="pl-9 rounded-sm"
                   autoComplete="username"
                 />
               </div>
@@ -162,7 +164,7 @@ export function AuthGate({ onAuthed }: Props) {
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="mono-header text-xs">Email</Label>
             <div className="relative">
               <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -171,7 +173,7 @@ export function AuthGate({ onAuthed }: Props) {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="survivor@example.com"
-                className="pl-9"
+                className="pl-9 rounded-sm"
                 autoComplete="email"
                 required
               />
@@ -179,7 +181,7 @@ export function AuthGate({ onAuthed }: Props) {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="mono-header text-xs">Password</Label>
             <div className="relative">
               <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -188,7 +190,7 @@ export function AuthGate({ onAuthed }: Props) {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="At least 6 characters"
-                className="pl-9"
+                className="pl-9 rounded-sm"
                 autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
                 required
               />
@@ -196,54 +198,54 @@ export function AuthGate({ onAuthed }: Props) {
           </div>
 
           {error && (
-            <div className="flex items-start gap-2 rounded-lg border border-rose-500/30 bg-rose-500/10 p-3 text-sm text-rose-300">
+            <div className="flex items-start gap-2 rounded-sm border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
               <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{error}</span>
             </div>
           )}
 
           {info && (
-            <div className="flex items-start gap-2 rounded-lg border border-primary/30 bg-primary/10 p-3 text-sm text-primary">
+            <div className="flex items-start gap-2 rounded-sm border border-primary/40 bg-primary/10 p-3 text-sm text-primary">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" />
               <span>{info}</span>
             </div>
           )}
 
-          <Button type="submit" disabled={loading} className="h-11 w-full">
+          <Button type="submit" disabled={loading} className="h-11 w-full rounded-sm mono-header">
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                {mode === 'signup' ? 'Creating account…' : 'Logging in…'}
+                {mode === 'signup' ? 'Creating Account…' : 'Connecting…'}
               </>
             ) : (
               <>
                 <Flame className="mr-2 h-4 w-4" />
-                {mode === 'signup' ? 'Create Account' : 'Enter the Hearth'}
+                {mode === 'signup' ? 'Create Account' : 'Enter the Island'}
               </>
             )}
           </Button>
 
           {mode === 'signup' && (
             <p className="text-center text-[11px] text-muted-foreground">
-              New accounts require admin verification before you can log in. The admin email is{' '}
-              <span className="font-mono text-primary">zadxoy@gmail.com</span>.
+              New accounts require admin verification before login. Admin:{' '}
+              <span className="font-mono text-primary">zadxoy@gmail.com</span>
             </p>
           )}
         </form>
 
         <div className="mt-6 grid grid-cols-2 gap-2 text-center text-xs text-muted-foreground">
-          <div className="rounded-lg border border-border bg-card/40 p-3">
-            <div className="mb-1 text-lg">💬</div>
-            Themed gathering channels
+          <div className="rounded-sm border border-border bg-card/40 p-3">
+            <div className="mb-1 text-lg">📡</div>
+            <span className="mono-header text-[10px]">7 Radio Channels</span>
           </div>
-          <div className="rounded-lg border border-border bg-card/40 p-3">
+          <div className="rounded-sm border border-border bg-card/40 p-3">
             <div className="mb-1 text-lg">🛡️</div>
-            Squads with task assigner
+            <span className="mono-header text-[10px]">Legion System</span>
           </div>
         </div>
 
-        <p className="mt-6 text-center text-[11px] text-muted-foreground">
-          By entering, you agree to keep chat respectful. No spam, no grief.
+        <p className="mt-6 text-center text-[11px] text-muted-foreground mono-header">
+          Stay alert. The island never sleeps.
         </p>
       </div>
     </div>

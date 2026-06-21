@@ -1,4 +1,4 @@
-// Shared types for the Hearth chat app.
+// Shared types for the Last Island of Survival chat app.
 // Keep in sync with mini-services/chat-service/index.ts
 
 export interface ChannelDef {
@@ -6,7 +6,7 @@ export interface ChannelDef {
   name: string
   description: string
   icon: string // emoji
-  accent: string // tailwind color token, e.g. 'coral'
+  accent: string // tailwind color token, e.g. 'flame'
 }
 
 export interface ChatUser {
@@ -93,7 +93,7 @@ export interface Legion {
    */
   icon: string
   iconType: 'emoji' | 'image'
-  /** In-game squad ID (provided by leader at creation) */
+  /** In-game Legion ID from Last Island of Survival (provided by leader at creation) */
   inGameLegionId: string
   leaderId: string
   leaderEmail: string
