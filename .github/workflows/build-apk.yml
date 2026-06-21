@@ -44,14 +44,14 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
           # Create a bubblewrap config pointing to the pre-installed JDK and Android SDK
-          # so Bubblewrap doesn't prompt to download them
           mkdir -p ~/.bubblewrap
           printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$ANDROID_HOME" > ~/.bubblewrap/config.json
           cat ~/.bubblewrap/config.json
-          # Pre-create the build directory so Bubblewrap doesn't prompt for it
+          # Pre-create the build directory
           mkdir -p ./twa-build
-          # Initialize the TWA project — pipe 'y' for any remaining prompts
-          echo "y" | bubblewrap init --manifest ./twa-manifest.json --directory ./twa-build --force
+          # Initialize the TWA project from the live web manifest URL
+          # (bubblewrap init --url fetches and validates the PWA manifest automatically)
+          echo "y" | bubblewrap init --url https://lios-network.vercel.app/manifest.json --directory ./twa-build --force
 
       - name: Build debug APK
         working-directory: ./twa-build
