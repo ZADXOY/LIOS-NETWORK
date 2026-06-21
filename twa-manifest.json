@@ -17,31 +17,12 @@
   "iconUrl": "https://lios-network.vercel.app/icons/icon-512.png",
   "maskableIconUrl": "https://lios-network.vercel.app/icons/maskable-512.png",
   "splashScreenFadeOutDuration": 300,
-  "signingKey": {
-    "path": "/tmp/android.keystore",
-    "alias": "android"
-  },
   "appVersionName": "1.0.0",
   "appVersionCode": 1,
-  "shortcuts": [
-    {
-      "name": "Comms",
-      "shortName": "Comms",
-      "url": "/",
-      "iconUrl": "https://lios-network.vercel.app/icons/icon-192.png"
-    }
-  ],
   "generatorApp": "bubblewrap",
   "webManifestUrl": "https://lios-network.vercel.app/manifest.json",
   "fallbackType": "customtabs",
-  "features": {
-    "locationDelegation": {
-      "enabled": false
-    },
-    "playBilling": {
-      "enabled": false
-    }
-  },
+  "features": {},
   "alphaDependencies": {
     "enabled": false
   },
