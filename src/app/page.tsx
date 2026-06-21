@@ -20,6 +20,7 @@ import {
   PanelRightClose,
   Menu,
   X,
+  Trash2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -1107,6 +1108,10 @@ export default function Home() {
                   allLegions={adminAllLegions}
                 />
               </section>
+            ) : activeSection === 'legion' && legion && legion.status === 'pending' ? (
+              <section className="flex flex-1 flex-col overflow-hidden rounded-md border border-primary/30 bg-card/60 backdrop-blur min-w-0">
+                <PendingLegionApproval legion={legion} onLeave={handleLegionLeave} onDisband={handleLegionDisband} isLeader={legion.leaderId === currentUser.id} />
+              </section>
             ) : activeSection === 'legion' && legion ? (
               <section className="flex flex-1 flex-col overflow-hidden rounded-md border border-primary/30 bg-card/60 backdrop-blur min-w-0">
                 <LegionPanel
@@ -1408,6 +1413,66 @@ function MessageRow({ msg, isSelf, accentColor }: { msg: ChatMessage; isSelf: bo
         <p className="whitespace-pre-wrap break-words text-sm leading-snug text-foreground/90">
           {msg.content}
         </p>
+      </div>
+    </div>
+  )
+}
+
+/** Pending Legion Approval screen — shown when a legion is awaiting admin approval */
+function PendingLegionApproval({ legion, onLeave, onDisband, isLeader }: { legion: Legion; onLeave: () => void; onDisband: () => void; isLeader: boolean }) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center overflow-hidden p-4 panel-in">
+      <div className="w-full max-w-md text-center">
+        <div className="mx-auto mb-4 grid h-20 w-20 place-items-center rounded-sm bg-primary/15 text-5xl ring-2 ring-primary/30 ember-flicker">
+          ⏳
+        </div>
+        <div className="mb-2 inline-flex items-center gap-1.5 rounded-sm border border-primary/40 bg-primary/10 px-3 py-1 text-[10px] mono-header text-primary">
+          <ShieldCheck className="h-3 w-3" />
+          PENDING ADMIN APPROVAL
+        </div>
+        <h2 className="text-xl font-bold tracking-tight mono-header">{legion.name}</h2>
+        <div className="mt-1 flex items-center justify-center gap-2">
+          <span className="rounded-sm bg-primary/20 px-2 py-0.5 text-xs font-mono font-bold text-primary">
+            [{legion.tag}]
+          </span>
+          <span className="text-xs text-muted-foreground">In-game ID: {legion.inGameLegionId}</span>
+        </div>
+
+        <div className="mt-6 rounded-sm border border-primary/30 bg-primary/5 p-4 text-left">
+          <p className="text-sm font-semibold text-primary mono-header mb-2">⏳ Awaiting Approval</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Your legion has been submitted for admin approval. The admin
+            (<span className="font-mono text-primary">zadxoy@gmail.com</span>) must approve it before you can:
+          </p>
+          <ul className="mt-2 space-y-1 text-xs text-muted-foreground list-disc list-inside">
+            <li>Access the legion chat</li>
+            <li>Assign tasks to members</li>
+            <li>Post the legion notice</li>
+            <li>Recruit players to the Legion Recruitment channel</li>
+            <li>Use the raid planning chat</li>
+          </ul>
+          <p className="mt-3 text-xs text-foreground/80">
+            You'll be notified automatically once the admin approves your legion.
+          </p>
+        </div>
+
+        <div className="mt-4 flex items-center justify-center gap-2">
+          <LegionLogo icon={legion.icon} iconType={legion.iconType || 'emoji'} size={32} />
+          <span className="text-xs text-muted-foreground">{legion.memberCount} member{legion.memberCount === 1 ? '' : 's'}</span>
+        </div>
+
+        <div className="mt-6 flex gap-2 justify-center">
+          <Button variant="outline" className="rounded-sm mono-header" onClick={onLeave}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Leave Legion
+          </Button>
+          {isLeader && (
+            <Button variant="ghost" className="rounded-sm text-destructive hover:text-destructive mono-header" onClick={onDisband}>
+              <Trash2 className="mr-2 h-4 w-4" />
+              Disband
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   )
