@@ -30,6 +30,13 @@ export const metadata: Metadata = {
   authors: [{ name: "Island Comms" }],
   icons: {
     icon: "/island-logo.png",
+    apple: "/island-logo.png",
+  },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Last Island",
   },
 };
 

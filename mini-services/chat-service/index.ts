@@ -1,5 +1,10 @@
 import { createServer } from 'http'
 import { Server, Socket } from 'socket.io'
+import webpush from 'web-push'
+import { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT } from './vapid-config.ts'
+
+// Configure web-push with VAPID keys
+webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)
 
 const httpServer = createServer()
 const io = new Server(httpServer, {
@@ -66,6 +71,7 @@ interface LegionMember {
   level: number
   role: LegionRole
   joinedAt: string
+  email: string // needed to look up push subscriptions for offline members
 }
 
 type LegionTaskStatus = 'pending' | 'in_progress' | 'done' | 'failed'
@@ -138,6 +144,16 @@ const channelUsers = new Map<string, Set<string>>()
 const legions = new Map<string, Legion>() // legionId -> legion
 const userLegion = new Map<string, string>() // socketId -> legionId (for quick lookup)
 const raidAlarmCooldown = new Map<string, number>() // legionId -> last alarm timestamp (ms)
+
+// Push notification subscriptions — keyed by email so they persist across socket reconnects.
+// A user subscribes once (per browser/device) and receives push notifications even when the app is closed.
+const pushSubscriptions = new Map<string, PushSubscriptionLike>() // email -> subscription
+
+// Minimal shape of a web push subscription (what the browser sends us)
+interface PushSubscriptionLike {
+  endpoint: string
+  keys: { p256dh: string; auth: string }
+}
 
 for (const c of CHANNELS) {
   channelHistory.set(c.id, [])
@@ -318,6 +334,45 @@ const triggerRaidAlarm = (
   // Also emit to anyone in the raids room
   io.to(`legion-raids:${legion.id}`).emit('legion:raid-alarm', alarm)
   console.log(`[legion] RAID ALARM triggered in [${legion.tag}] ${legion.name} by ${user.username}`)
+
+  // ---- PUSH NOTIFICATIONS ----
+  // Send a web push notification to every legion member who has a push subscription,
+  // so they receive the alarm even if the app is closed. Each member's email is stored
+  // on the LegionMember object, and push subscriptions are keyed by email.
+  const pushPayload = JSON.stringify({
+    title: `🚨 RAID ALARM [${legion.tag}]`,
+    body: `${user.username}: ${content}`,
+    tag: `raid-alarm-${legion.id}`,
+    icon: '/island-logo.png',
+    badge: '/island-logo.png',
+    requireInteraction: true,
+    data: {
+      url: '/',
+      legionId: legion.id,
+      type: 'raid-alarm',
+    },
+  })
+
+  let pushSent = 0
+  for (const m of legion.members.values()) {
+    if (!m.email) continue
+    const sub = pushSubscriptions.get(m.email)
+    if (!sub) continue
+    // Don't send a push to the person who triggered the alarm (they're online)
+    if (m.email === user.email) continue
+    webpush.sendNotification(sub, pushPayload).then(() => {
+      pushSent++
+    }).catch((err) => {
+      // 410 = subscription expired/unsubscribed — remove it
+      if (err.statusCode === 410 || err.statusCode === 404) {
+        pushSubscriptions.delete(m.email)
+        console.log(`[push] removed expired subscription for ${m.email}`)
+      } else {
+        console.error(`[push] failed to send to ${m.email}:`, err.statusCode, err.message)
+      }
+    })
+  }
+
   return true
 }
 
@@ -400,6 +455,28 @@ io.on('connection', (socket: Socket) => {
     if (user.isAdmin) {
       broadcastPendingLegions()
       broadcastAllLegionsToAdmins()
+    }
+  })
+
+  // ---------- PUSH NOTIFICATION SUBSCRIPTION ----------
+  // Client sends their web push subscription so the server can send them push
+  // notifications (raid alarms) even when the app is closed.
+  socket.on('push:subscribe', (data: { email: string; subscription: PushSubscriptionLike }) => {
+    const email = (data?.email || '').trim().toLowerCase()
+    if (!email || !data?.subscription?.endpoint || !data?.subscription?.keys) {
+      socket.emit('error-message', { message: 'Invalid push subscription' })
+      return
+    }
+    pushSubscriptions.set(email, data.subscription)
+    console.log(`[push] subscription registered for ${email} (${pushSubscriptions.size} total)`)
+    socket.emit('push:subscribed', { success: true, email })
+  })
+
+  socket.on('push:unsubscribe', (data: { email: string }) => {
+    const email = (data?.email || '').trim().toLowerCase()
+    if (email) {
+      pushSubscriptions.delete(email)
+      console.log(`[push] subscription removed for ${email}`)
     }
   })
 
@@ -527,6 +604,7 @@ io.on('connection', (socket: Socket) => {
       level: user.level,
       role: 'captain',
       joinedAt: new Date().toISOString(),
+      email: user.email,
     }
     const legion: Legion = {
       id: legionId,
@@ -609,6 +687,7 @@ io.on('connection', (socket: Socket) => {
       level: user.level,
       role: 'member',
       joinedAt: new Date().toISOString(),
+      email: user.email,
     }
     legion.members.set(socket.id, member)
     userLegion.set(socket.id, legion.id)

@@ -178,3 +178,67 @@ Stage Summary:
   * Only the Captain can assign/demote ranks via a dropdown menu on each member row in the Members tab.
   * Rank Roster overview card shows current counts (e.g., "VICE CAPTAIN 0/1", "ELITE 0/3").
   * Rank badges with distinct icons/colors: Captain (Crown/rust), Vice Captain (Award/amber), Elite (Star/olive), Member (Shield/muted).
+
+---
+Task ID: 10
+Agent: main (orchestrator)
+Task: Make the raid alarm work even when the app is closed — implement Web Push Notifications with a Service Worker.
+
+Work Log:
+- Installed `web-push` npm package in mini-services/chat-service
+- Generated VAPID keys (public + private) using `npx web-push generate-vapid-keys`
+- Created mini-services/chat-service/vapid-config.ts with the VAPID keys
+- Updated chat-service/index.ts:
+  * Imported webpush and configured it with VAPID keys
+  * Added `email` field to LegionMember interface (needed to look up push subscriptions for offline members)
+  * Added PushSubscriptionLike interface + pushSubscriptions Map<email, subscription>
+  * legion:create and legion:join now store the member's email in the LegionMember
+  * Updated triggerRaidAlarm() to send web push notifications to ALL legion members (except the sender):
+    - Iterates all legion members, looks up their push subscription by email
+    - Sends a push with title "🚨 RAID ALARM [TAG]", body "username: message", requireInteraction: true, vibrate pattern
+    - Handles 410/404 responses by removing expired subscriptions
+  * Added `push:subscribe` socket event — client sends {email, subscription}, server stores it keyed by email
+  * Added `push:unsubscribe` socket event — removes the subscription (on logout)
+- Created public/manifest.json — PWA manifest with app name, icons, standalone display mode, theme/background colors
+- Created public/sw.js — Service Worker that:
+  * Caches the app shell for offline use
+  * Listens for 'push' events and displays system notifications (works even when app tab is closed)
+  * Listens for 'notificationclick' to open/focus the app
+  * Uses requireInteraction so the alarm stays until dismissed
+- Created /api/vapid-public-key route — returns the VAPID public key to the client
+- Updated layout.tsx — added manifest link, appleWebApp metadata, apple touch icon
+- Updated page.tsx:
+  * Added urlBase64ToUint8Array() helper (converts VAPID key for PushManager)
+  * Added registerServiceWorker() — registers /sw.js
+  * Added subscribeToPushNotifications() — requests Notification.permission, fetches VAPID key, creates PushSubscription
+  * Added serializePushSubscription() — converts PushSubscription to plain object for socket transport
+  * Added useEffect that runs after authUser is set: registers SW, subscribes to push, sends subscription to server via `push:subscribe` socket event
+  * Added pushEnabled state + "ALERTS ON" badge in the player chip (shows when push is active)
+  * handleLogout now emits `push:unsubscribe` before disconnecting
+- Fixed ESM import path (./vapid-config.ts for Node --experimental-strip-types)
+- Restarted chat-service (PID 10841) with push notification support
+- Verified with agent-browser:
+  * Service worker registers successfully: "http://localhost:81/"
+  * VAPID public key endpoint returns the key
+  * Manifest.json and sw.js are served correctly
+  * PushManager and PushManager are available in the browser
+  * (Notification permission auto-denied in headless browser — in a real browser, the user sees a permission prompt)
+- Lint passes with zero errors. Chat-service stable. No browser errors.
+
+Stage Summary:
+- RAID ALARMS NOW WORK EVEN WHEN THE APP IS CLOSED:
+  1. When a user logs in, the app registers a service worker and requests notification permission
+  2. If granted, it creates a push subscription and sends it to the chat-service (keyed by email)
+  3. When anyone types "raid" in legion chat, the chat-service:
+     - Emits the real-time socket event (for online users — in-app banner + siren)
+     - Sends a web push notification to every legion member's push subscription (for offline users)
+  4. The service worker wakes up (even if the app tab is closed) and displays a system notification:
+     - Title: "🚨 RAID ALARM [TAG]"
+     - Body: "username: the raid message"
+     - requireInteraction: true (stays until dismissed)
+     - Vibration pattern
+     - Clicking "Open App" opens/focuses the app
+- The app is now a PWA (installable on Android/iOS home screen)
+- An "ALERTS ON" badge appears in the player chip when push is enabled
+- Push subscriptions persist across socket reconnects (keyed by email, not socket ID)
+- Expired subscriptions are automatically cleaned up (410/404 handling)

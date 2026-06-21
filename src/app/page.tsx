@@ -173,6 +173,91 @@ function playRaidAlarmSiren() {
   }
 }
 
+/**
+ * Convert a base64 string to a Uint8Array (needed for the VAPID applicationServerKey).
+ */
+function urlBase64ToUint8Array(base64String: string): Uint8Array {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = typeof window !== 'undefined' ? window.atob(base64) : Buffer.from(base64, 'base64').toString('binary')
+  const output = new Uint8Array(rawData.length)
+  for (let i = 0; i < rawData.length; ++i) {
+    output[i] = rawData.charCodeAt(i)
+  }
+  return output
+}
+
+/**
+ * Register the service worker for background push notifications.
+ * Returns the registration or null on failure.
+ */
+async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return null
+  try {
+    const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' })
+    console.log('[push] service worker registered:', reg.scope)
+    return reg
+  } catch (err) {
+    console.warn('[push] service worker registration failed:', err)
+    return null
+  }
+}
+
+/**
+ * Subscribe the current browser to web push notifications.
+ * 1. Requests notification permission from the user
+ * 2. Creates a PushSubscription using the VAPID public key
+ * 3. Returns the subscription (to be sent to the server) or null on failure/denial
+ */
+async function subscribeToPushNotifications(): Promise<PushSubscription | null> {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+    console.warn('[push] push notifications not supported in this browser')
+    return null
+  }
+
+  // Request notification permission
+  const permission = await Notification.requestPermission()
+  if (permission !== 'granted') {
+    console.log('[push] notification permission denied')
+    return null
+  }
+
+  try {
+    const reg = await navigator.serviceWorker.ready
+    // Fetch the VAPID public key from our API
+    const res = await fetch('/api/vapid-public-key')
+    const data = await res.json()
+    if (!data.publicKey) {
+      console.warn('[push] no VAPID public key returned')
+      return null
+    }
+
+    const applicationServerKey = urlBase64ToUint8Array(data.publicKey)
+    const subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey,
+    })
+    console.log('[push] subscribed to push notifications:', subscription.endpoint)
+    return subscription
+  } catch (err) {
+    console.warn('[push] subscription failed:', err)
+    return null
+  }
+}
+
+/**
+ * Convert a PushSubscription to a plain object suitable for sending over socket.io.
+ */
+function serializePushSubscription(sub: PushSubscription) {
+  return {
+    endpoint: sub.endpoint,
+    keys: {
+      p256dh: sub.toJSON().keys?.p256dh || '',
+      auth: sub.toJSON().keys?.auth || '',
+    },
+  }
+}
+
 export default function Home() {
   const { toast } = useToast()
 
@@ -464,6 +549,50 @@ export default function Home() {
     })
   }, [])
 
+  // ---------- Push notification subscription ----------
+  // After the user logs in, register the service worker and subscribe to push notifications
+  // so they receive raid alarms even when the app is closed.
+  const [pushEnabled, setPushEnabled] = useState(false)
+  useEffect(() => {
+    if (!authUser) return
+    let cancelled = false
+
+    async function setupPush() {
+      // Register the service worker
+      const swReg = await registerServiceWorker()
+      if (!swReg || cancelled) return
+
+      // Subscribe to push
+      const subscription = await subscribeToPushNotifications()
+      if (!subscription || cancelled) {
+        // Permission may have been denied — that's OK, in-app alarm still works
+        return
+      }
+
+      setPushEnabled(true)
+
+      // Send the subscription to the server via socket
+      const sock = socketRef.current
+      const serialized = serializePushSubscription(subscription)
+      const sendSub = () => {
+        const s = socketRef.current
+        if (s && s.connected) {
+          s.emit('push:subscribe', { email: authUser.email, subscription: serialized })
+        } else {
+          // Retry after a short delay if socket isn't ready yet
+          setTimeout(sendSub, 1000)
+        }
+      }
+      sendSub()
+    }
+
+    setupPush()
+
+    return () => {
+      cancelled = true
+    }
+  }, [authUser])
+
   const handleSwitchChannel = useCallback((channel: ChannelDef) => {
     const sock = socketRef.current
     if (!sock || !currentUser) return
@@ -639,6 +768,10 @@ export default function Home() {
 
   const handleLogout = useCallback(() => {
     const oldSock = socketRef.current
+    // Unsubscribe from push notifications (user is logging out)
+    if (oldSock && authUser) {
+      oldSock.emit('push:unsubscribe', { email: authUser.email })
+    }
     if (oldSock) oldSock.disconnect()
     localStorage.removeItem(TOKEN_KEY)
     setCurrentUser(null)
@@ -658,6 +791,7 @@ export default function Home() {
     setAdminPendingLegions([])
     setAdminAllLegions([])
     setActiveSection('comms')
+    setPushEnabled(false)
     setTimeout(() => {
       const sock = io('/?XTransformPort=3003', {
         transports: ['websocket', 'polling'],
@@ -693,7 +827,7 @@ export default function Home() {
         setUsersByChannel((prev) => ({ ...prev, [d.channelId]: d.users }))
       })
     }, 200)
-  }, [])
+  }, [authUser])
 
   // ---------- Render: Auth Gate ----------
   if (!authUser) {
@@ -845,6 +979,15 @@ export default function Home() {
                       <Shield className="h-2.5 w-2.5" />
                       [{legion.tag}]
                     </Badge>
+                  )}
+                  {pushEnabled && (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-sm bg-accent/15 px-1.5 py-0.5 text-[9px] font-medium text-accent mono-header"
+                      title="Push notifications enabled — raid alarms will reach you even when the app is closed"
+                    >
+                      <Flame className="h-2.5 w-2.5" />
+                      ALERTS ON
+                    </span>
                   )}
                 </div>
                 {/* Mobile connection dot */}
