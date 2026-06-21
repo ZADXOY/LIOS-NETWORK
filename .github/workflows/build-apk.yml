@@ -37,7 +37,8 @@ jobs:
 
       - name: Initialize TWA project from manifest
         run: |
-          bubblewrap init --manifest ./twa-manifest.json --directory ./twa-build --force
+          # Pipe "Y" to auto-answer the JDK install prompt
+          echo "Y" | bubblewrap init --manifest ./twa-manifest.json --directory ./twa-build --force
 
       - name: Build debug APK
         working-directory: ./twa-build
