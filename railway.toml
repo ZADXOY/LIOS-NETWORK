@@ -1,0 +1,9 @@
+# Railway deployment config for the Last Island chat-service
+# Railway auto-detects the Dockerfile and deploys it.
+# The PORT env var is set automatically by Railway.
+
+[deploy]
+  # Railway will use the Dockerfile in the repo root
+  # The chat-service listens on PORT (set by Railway) or defaults to 3003
+  restartPolicyType = "ON_FAILURE"
+  restartPolicyMaxRetries = 10

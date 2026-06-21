@@ -311,10 +311,12 @@ export default function Home() {
 
   // ---------- Socket setup ----------
   useEffect(() => {
-    // Ensure the chat-service mini-service is running
-    fetch('/api/start-chat-service').catch(() => {})
+    // Connect to the chat-service (socket.io) — deployed separately on Railway/Render
+    // Falls back to the local sandbox path for development.
+    const chatServiceUrl = process.env.NEXT_PUBLIC_CHAT_SERVICE_URL || ''
+    const socketUrl = chatServiceUrl ? `${chatServiceUrl}/?XTransformPort=3003` : '/?XTransformPort=3003'
 
-    const sock = io('/?XTransformPort=3003', {
+    const sock = io(socketUrl, {
       transports: ['websocket', 'polling'],
       forceNew: true,
       reconnection: true,
@@ -793,7 +795,9 @@ export default function Home() {
     setActiveSection('comms')
     setPushEnabled(false)
     setTimeout(() => {
-      const sock = io('/?XTransformPort=3003', {
+      const chatServiceUrl2 = process.env.NEXT_PUBLIC_CHAT_SERVICE_URL || ''
+      const socketUrl2 = chatServiceUrl2 ? `${chatServiceUrl2}/?XTransformPort=3003` : '/?XTransformPort=3003'
+      const sock = io(socketUrl2, {
         transports: ['websocket', 'polling'],
         forceNew: true,
         reconnection: true,

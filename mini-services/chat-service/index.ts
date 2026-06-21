@@ -1314,7 +1314,7 @@ function handleLegionLeave(socket: Socket, user: User, legion: Legion, reason: '
   console.log(`[legion] ${user.username} ${reason} [${legion.tag}]`)
 }
 
-const PORT = 3003
+const PORT = Number(process.env.PORT) || 3003
 httpServer.listen(PORT, () => {
   console.log(`Last Island chat service running on port ${PORT}`)
   console.log(`Game channels: ${CHANNELS.map((c) => c.id).join(', ')}`)
