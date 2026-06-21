@@ -311,10 +311,11 @@ export default function Home() {
 
   // ---------- Socket setup ----------
   useEffect(() => {
-    // Connect to the chat-service (socket.io) — deployed separately on Railway/Render
-    // Falls back to the local sandbox path for development.
-    const chatServiceUrl = process.env.NEXT_PUBLIC_CHAT_SERVICE_URL || ''
-    const socketUrl = chatServiceUrl ? `${chatServiceUrl}/?XTransformPort=3003` : '/?XTransformPort=3003'
+    // Connect to the chat-service (socket.io) — deployed on Railway.
+    // Uses NEXT_PUBLIC_CHAT_SERVICE_URL env var if set, otherwise falls back to the
+    // hardcoded Railway production URL (so it works even without the env var).
+    const chatServiceUrl = process.env.NEXT_PUBLIC_CHAT_SERVICE_URL || 'https://lios-network-production-b635.up.railway.app'
+    const socketUrl = `${chatServiceUrl}/?XTransformPort=3003`
 
     const sock = io(socketUrl, {
       transports: ['websocket', 'polling'],
@@ -795,8 +796,8 @@ export default function Home() {
     setActiveSection('comms')
     setPushEnabled(false)
     setTimeout(() => {
-      const chatServiceUrl2 = process.env.NEXT_PUBLIC_CHAT_SERVICE_URL || ''
-      const socketUrl2 = chatServiceUrl2 ? `${chatServiceUrl2}/?XTransformPort=3003` : '/?XTransformPort=3003'
+      const chatServiceUrl2 = process.env.NEXT_PUBLIC_CHAT_SERVICE_URL || 'https://lios-network-production-b635.up.railway.app'
+      const socketUrl2 = `${chatServiceUrl2}/?XTransformPort=3003`
       const sock = io(socketUrl2, {
         transports: ['websocket', 'polling'],
         forceNew: true,
