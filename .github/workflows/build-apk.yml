@@ -48,8 +48,10 @@ jobs:
           mkdir -p ~/.bubblewrap
           printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$ANDROID_HOME" > ~/.bubblewrap/config.json
           cat ~/.bubblewrap/config.json
-          # Initialize the TWA project
-          bubblewrap init --manifest ./twa-manifest.json --directory ./twa-build --force
+          # Pre-create the build directory so Bubblewrap doesn't prompt for it
+          mkdir -p ./twa-build
+          # Initialize the TWA project — pipe 'y' for any remaining prompts
+          echo "y" | bubblewrap init --manifest ./twa-manifest.json --directory ./twa-build --force
 
       - name: Build debug APK
         working-directory: ./twa-build
