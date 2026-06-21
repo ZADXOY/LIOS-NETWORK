@@ -1,9 +1,5 @@
 name: Build Android APK (Debug)
 
-# Builds a debug APK using a pre-configured TWA project.
-# The TWA project files are committed to the repo (in the twa-project/ folder),
-# so no bubblewrap init is needed — just gradle build.
-
 on:
   push:
     branches: [main, master]
@@ -30,6 +26,15 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
 
+      - name: Set up Gradle
+        uses: gradle/gradle-build-action@v3
+        with:
+          gradle-version: '8.2'
+
+      - name: Generate Gradle Wrapper
+        working-directory: ./twa-project
+        run: gradle wrapper --gradle-version 8.2
+
       - name: Build debug APK
         working-directory: ./twa-project
         env:
@@ -37,7 +42,6 @@ jobs:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
           echo "sdk.dir=$ANDROID_HOME" > local.properties
-          chmod +x ./gradlew
           ./gradlew assembleDebug --no-daemon -x lint
 
       - name: Find the built APK
@@ -70,14 +74,6 @@ jobs:
             2. On your phone: Settings → Apps → Special access → Install unknown apps → enable for your browser
             3. Open the APK file to install
             4. Launch "Last Island" from your app drawer
-
-            ### Features
-            - Real-time survivor comms (7 channels)
-            - Legion system with Captain / Vice Captain / Elite ranks
-            - Public/Private legions with password protection
-            - Join approval flow
-            - Raid alarm with push notifications
-            - Admin panel for user verification & legion approval
           draft: false
           prerelease: false
         env:
