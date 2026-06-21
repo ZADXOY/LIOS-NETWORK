@@ -1,18 +1,10 @@
-name: Build Android APK
+name: Build Android APK (Debug)
 
-# This workflow builds a signed Android APK from your Last Island web app using
-# Bubblewrap (Google's Trusted Web Activity tool). The APK wraps your deployed
-# PWA into a native Android app.
+# Builds a debug APK from your Last Island web app using Bubblewrap.
+# Debug APKs are unsigned but installable on any Android phone
+# (enable "Install from unknown apps" in Settings).
 #
-# PREREQUISITES (one-time setup):
-# 1. Deploy your app to Vercel (or any HTTPS host) — note the URL
-# 2. Update twa-manifest.json with your real URL (replace last-island-chat.vercel.app)
-# 3. Generate a signing keystore (see APK_BUILD_GUIDE.md) and add these GitHub secrets:
-#    - ANDROID_KEYSTORE_BASE64  (base64-encoded .keystore file)
-#    - ANDROID_KEYSTORE_PASSWORD
-#    - ANDROID_KEY_ALIAS  (usually "android")
-#    - ANDROID_KEY_PASSWORD
-# 4. Push to GitHub → the workflow runs automatically
+# No keystore or secrets required — just trigger and download.
 
 on:
   push:
@@ -20,7 +12,7 @@ on:
     paths:
       - "twa-manifest.json"
       - ".github/workflows/build-apk.yml"
-  workflow_dispatch: # allows manual trigger from the Actions tab
+  workflow_dispatch:
 
 jobs:
   build-apk:
@@ -43,47 +35,22 @@ jobs:
       - name: Install Bubblewrap CLI
         run: npm install -g @bubblewrap/cli
 
-      - name: Decode signing keystore
-        if: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+      - name: Initialize TWA project from manifest
         run: |
-          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > /tmp/android.keystore
-          echo "Keystore decoded to /tmp/android.keystore"
-        env:
-          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          bubblewrap init --manifest ./twa-manifest.json --directory ./twa-build --force
 
-      - name: Build the APK with Bubblewrap
-        env:
-          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
-          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      - name: Build debug APK
+        working-directory: ./twa-build
         run: |
-          # Initialize the TWA project from the manifest
-          bubblewrap init --manifest ./twa-manifest.json --directory ./twa-build
-
-          cd ./twa-build
-
-          # Build the signed APK (answers "yes" to prompts automatically)
-          # If no keystore secrets are set, this builds an unsigned debug APK instead
-          if [ -f /tmp/android.keystore ]; then
-            echo "Building SIGNED release APK..."
-            bubblewrap build --signing-key-path /tmp/android.keystore \
-              --signing-key-alias "$ANDROID_KEY_ALIAS" \
-              --signing-key-password "$ANDROID_KEY_PASSWORD" \
-              --keystore-password "$ANDROID_KEYSTORE_PASSWORD" \
-              --skip-gradle-build false
-          else
-            echo "No keystore found — building UNSIGNED debug APK..."
-            bubblewrap build --skip-gradle-build false
-          fi
+          # Build the debug APK (no signing required)
+          ./gradlew assembleDebug --no-daemon -x lint
 
       - name: Find the built APK
-        id: find-apk
         run: |
           APK_PATH=$(find ./twa-build -name "*.apk" -type f | head -1)
           echo "Found APK at: $APK_PATH"
-          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
-          # Copy to a known location with a clean name
           cp "$APK_PATH" ./last-island.apk
+          ls -la ./last-island.apk
 
       - name: Upload APK as artifact
         uses: actions/upload-artifact@v4
@@ -93,7 +60,6 @@ jobs:
           retention-days: 90
 
       - name: Create GitHub Release with APK
-        if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: apk-${{ github.run_number }}
@@ -106,11 +72,11 @@ jobs:
 
             ### Installation
             1. Download `last-island.apk`
-            2. On your phone, enable "Install from unknown sources" in Settings
+            2. On your phone: Settings → Apps → Special access → Install unknown apps → enable for your browser
             3. Open the APK file to install
             4. Launch "Last Island" from your app drawer
 
-            ### What's included
+            ### Features
             - Real-time survivor comms (7 channels)
             - Legion system with Captain / Vice Captain / Elite ranks
             - Raid alarm with push notifications (works when app is closed)
