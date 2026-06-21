@@ -22,7 +22,6 @@
   "generatorApp": "bubblewrap",
   "webManifestUrl": "https://lios-network.vercel.app/manifest.json",
   "fallbackType": "customtabs",
-  "features": {},
   "alphaDependencies": {
     "enabled": false
   },
