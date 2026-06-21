@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="Last Island"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.LastIsland"
+        android:usesCleartextTraffic="false">
+
+        <activity
+            android:name=".LauncherActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|keyboard|keyboardHidden">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- TWA configuration — opens lios-network.vercel.app in a Trusted Web Activity -->
+        <meta-data
+            android:name="android.support.customtabs.trusted.DEFAULT_URL"
+            android:value="https://lios-network.vercel.app/" />
+
+        <meta-data
+            android:name="android.support.customtabs.trusted.STATUS_BAR_COLOR"
+            android:resource="@color/colorPrimary" />
+
+        <meta-data
+            android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR"
+            android:resource="@color/colorPrimaryDark" />
+
+        <meta-data
+            android:name="android.support.customtabs.trusted.SPLASH_SCREEN_DRAWABLE"
+            android:resource="@drawable/splash" />
+
+        <meta-data
+            android:name="android.support.customtabs.trusted.SPLASH_SCREEN_BACKGROUND_COLOR"
+            android:resource="@color/colorBackground" />
+
+        <meta-data
+            android:name="android.support.customtabs.trusted.FILE_PROVIDER_AUTHORITY"
+            android:value="com.lastisland.survivorcomms.fileprovider" />
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.lastisland.survivorcomms.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/filepaths" />
+        </provider>
+
+        <service
+            android:name="com.google.androidbrowserhelper.trusted.DelegationService"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.support.customtabs.trusted.TRUSTED_WEB_ACTIVITY_SERVICE" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+
+    </application>
+</manifest>
