@@ -1,0 +1,54 @@
+{
+  "packageId": "com.lastisland.survivorcomms",
+  "host": "last-island-chat.vercel.app",
+  "name": "Last Island",
+  "launcherName": "Last Island",
+  "display": "standalone",
+  "orientation": "default",
+  "themeColor": "#c2502a",
+  "themeColorDark": "#161310",
+  "navigationColor": "#161310",
+  "navigationColorDark": "#161310",
+  "navigationDividerColor": "#161310",
+  "navigationDividerColorDark": "#161310",
+  "backgroundColor": "#161310",
+  "enableNotifications": true,
+  "startUrl": "/",
+  "iconUrl": "https://last-island-chat.vercel.app/icons/icon-512.png",
+  "maskableIconUrl": "https://last-island-chat.vercel.app/icons/maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "/tmp/android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [
+    {
+      "name": "Comms",
+      "shortName": "Comms",
+      "url": "/",
+      "iconUrl": "https://last-island-chat.vercel.app/icons/icon-192.png"
+    }
+  ],
+  "generatorApp": "bubblewrap",
+  "webManifestUrl": "https://last-island-chat.vercel.app/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {
+    "locationDelegation": {
+      "enabled": false
+    },
+    "playBilling": {
+      "enabled": false
+    }
+  },
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": false,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://last-island-chat.vercel.app/",
+  "minSdkVersion": 21,
+  "_comment": "Replace 'last-island-chat.vercel.app' with your actual deployed URL before building."
+}
