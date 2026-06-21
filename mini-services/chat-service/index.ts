@@ -45,7 +45,19 @@ interface ChannelDef {
   accent: string
 }
 
-type LegionRole = 'leader' | 'officer' | 'member'
+type LegionRole = 'captain' | 'vice_captain' | 'elite' | 'member'
+
+/** Raid alarm payload sent to all legion members when someone says "raid". */
+interface RaidAlarm {
+  legionId: string
+  legionName: string
+  tag: string
+  triggeredBy: string
+  avatar: string
+  message: string
+  channelId: string
+  timestamp: string
+}
 
 interface LegionMember {
   userId: string
@@ -111,6 +123,11 @@ const CHANNELS: ChannelDef[] = [
 
 const MAX_HISTORY = 50
 const COOLDOWN_MS = 24 * 60 * 60 * 1000 // 24 hours
+const RAID_ALARM_COOLDOWN_MS = 30 * 1000 // 30 seconds between raid alarms per legion
+
+// Rank limits — enforced when the Captain assigns roles
+const MAX_VICE_CAPTAINS = 1
+const MAX_ELITES = 3
 
 // ---------- State ----------
 const users = new Map<string, User>() // socketId -> user
@@ -120,6 +137,7 @@ const channelUsers = new Map<string, Set<string>>()
 // Legion state
 const legions = new Map<string, Legion>() // legionId -> legion
 const userLegion = new Map<string, string>() // socketId -> legionId (for quick lookup)
+const raidAlarmCooldown = new Map<string, number>() // legionId -> last alarm timestamp (ms)
 
 for (const c of CHANNELS) {
   channelHistory.set(c.id, [])
@@ -251,6 +269,65 @@ const emitLegionMessage = (legion: Legion, msg: ChatMessage) => {
 
 const emitLegionRaidMessage = (legion: Legion, msg: ChatMessage) => {
   io.to(`legion-raids:${legion.id}`).emit('legion:raid:message', msg)
+}
+
+/**
+ * Detect if a message should trigger a raid alarm.
+ * Triggers when the word "raid" appears (case-insensitive, whole word or as part of "raids"/"raiding").
+ */
+const shouldTriggerRaidAlarm = (content: string): boolean => {
+  return /\braid(s|ing|ed)?\b/i.test(content)
+}
+
+/**
+ * Trigger a raid alarm for all members of a legion (with a 30s cooldown per legion).
+ * Emits a `legion:raid-alarm` event to everyone in the legion room + the raids room.
+ */
+const triggerRaidAlarm = (
+  socket: Socket,
+  legion: Legion,
+  user: User,
+  content: string,
+  channelId: string,
+): boolean => {
+  const now = Date.now()
+  const last = raidAlarmCooldown.get(legion.id) || 0
+  if (now - last < RAID_ALARM_COOLDOWN_MS) {
+    // On cooldown — don't alarm again, but still send a soft notice to the sender
+    const remaining = Math.ceil((RAID_ALARM_COOLDOWN_MS - (now - last)) / 1000)
+    socket.emit('error-message', {
+      message: `Raid alarm on cooldown — ${remaining}s remaining. The legion was already alerted recently.`,
+      cooldown: true,
+    })
+    return false
+  }
+
+  raidAlarmCooldown.set(legion.id, now)
+  const alarm: RaidAlarm = {
+    legionId: legion.id,
+    legionName: legion.name,
+    tag: legion.tag,
+    triggeredBy: user.username,
+    avatar: user.avatar,
+    message: content,
+    channelId,
+    timestamp: new Date().toISOString(),
+  }
+  // Emit to everyone in the legion room (including sender so they see confirmation)
+  io.to(`legion:${legion.id}`).emit('legion:raid-alarm', alarm)
+  // Also emit to anyone in the raids room
+  io.to(`legion-raids:${legion.id}`).emit('legion:raid-alarm', alarm)
+  console.log(`[legion] RAID ALARM triggered in [${legion.tag}] ${legion.name} by ${user.username}`)
+  return true
+}
+
+/** Count members of a given role in a legion. */
+const countRole = (legion: Legion, role: LegionRole): number => {
+  let count = 0
+  for (const m of legion.members.values()) {
+    if (m.role === role) count++
+  }
+  return count
 }
 
 /** Get all admin sockets currently connected. */
@@ -448,7 +525,7 @@ io.on('connection', (socket: Socket) => {
       username: user.username,
       avatar: user.avatar,
       level: user.level,
-      role: 'leader',
+      role: 'captain',
       joinedAt: new Date().toISOString(),
     }
     const legion: Legion = {
@@ -695,6 +772,11 @@ io.on('connection', (socket: Socket) => {
     const msg = createUserMessage(`legion:${legion.id}`, user, content)
     pushLegionHistory(legion, msg)
     emitLegionMessage(legion, msg)
+
+    // Raid alarm — if the message mentions "raid", alert the whole legion
+    if (shouldTriggerRaidAlarm(content)) {
+      triggerRaidAlarm(socket, legion, user, content, `legion:${legion.id}`)
+    }
   })
 
   socket.on('legion:typing', (data: { isTyping: boolean }) => {
@@ -778,6 +860,11 @@ io.on('connection', (socket: Socket) => {
     const msg = createUserMessage(`legion-raids:${legion.id}`, user, content)
     pushLegionRaidHistory(legion, msg)
     emitLegionRaidMessage(legion, msg)
+
+    // Raid alarm — if the message mentions "raid", alert the whole legion
+    if (shouldTriggerRaidAlarm(content)) {
+      triggerRaidAlarm(socket, legion, user, content, `legion-raids:${legion.id}`)
+    }
   })
 
   socket.on('legion:raid:typing', (data: { isTyping: boolean }) => {
@@ -899,6 +986,70 @@ io.on('connection', (socket: Socket) => {
     pushLegionHistory(legion, sysMsg)
     emitLegionMessage(legion, sysMsg)
     emitLegionUpdate(legion)
+  })
+
+  // ---------- LEGION RANK ASSIGNMENT ----------
+  // Only the Captain can assign Vice Captain / Elite ranks, or demote back to Member.
+  // Limits: max 1 Vice Captain, max 3 Elite. Captain role cannot be assigned (only via auto-promotion on leave).
+  socket.on('legion:assign-role', (data: { userId: string; role: 'vice_captain' | 'elite' | 'member' }) => {
+    const user = users.get(socket.id)
+    if (!user || !user.legionId) return
+    const legion = legions.get(user.legionId)
+    if (!legion) return
+    // Only the Captain (leader) can assign roles
+    if (legion.leaderId !== socket.id) {
+      socket.emit('error-message', { message: 'Only the Captain can assign ranks' })
+      return
+    }
+    const target = legion.members.get(data.userId)
+    if (!target) {
+      socket.emit('error-message', { message: 'Member not found in this legion' })
+      return
+    }
+    if (target.role === 'captain') {
+      socket.emit('error-message', { message: 'Cannot change the Captain\'s rank' })
+      return
+    }
+    const newRole = data.role
+    // Validate limits
+    if (newRole === 'vice_captain') {
+      // If someone else is already Vice Captain, demote them to Member (auto-swap)
+      for (const m of legion.members.values()) {
+        if (m.role === 'vice_captain' && m.userId !== data.userId) {
+          m.role = 'member'
+        }
+      }
+    } else if (newRole === 'elite') {
+      // Count current elites (excluding the target if they're already elite)
+      const currentElites = countRole(legion, 'elite') - (target.role === 'elite' ? 1 : 0)
+      if (currentElites >= MAX_ELITES) {
+        socket.emit('error-message', { message: `Elite rank is full (max ${MAX_ELITES}). Demote an existing Elite first.` })
+        return
+      }
+    }
+    // 'member' is always allowed (demotion)
+
+    const oldRole = target.role
+    target.role = newRole
+
+    const roleLabel = (r: LegionRole): string => {
+      switch (r) {
+        case 'captain': return 'Captain'
+        case 'vice_captain': return 'Vice Captain'
+        case 'elite': return 'Elite'
+        case 'member': return 'Member'
+      }
+    }
+
+    const action = newRole === 'member' ? 'demoted to' : 'promoted to'
+    const sysMsg = createSystemMessage(
+      `legion:${legion.id}`,
+      `Captain ${user.username} ${action} ${target.username} from ${roleLabel(oldRole as LegionRole)} to ${roleLabel(newRole)}`,
+    )
+    pushLegionHistory(legion, sysMsg)
+    emitLegionMessage(legion, sysMsg)
+    emitLegionUpdate(legion)
+    console.log(`[legion] rank change in [${legion.tag}]: ${target.username} ${oldRole} -> ${newRole}`)
   })
 
   // ---------- ADMIN: LEGION APPROVAL ----------
@@ -1053,11 +1204,11 @@ function handleLegionLeave(socket: Socket, user: User, legion: Legion, reason: '
     )
     const newLeader = sortedMembers[0]
     if (newLeader) {
-      newLeader.role = 'leader'
+      newLeader.role = 'captain'
       legion.leaderId = newLeader.userId
       const promoteMsg = createSystemMessage(
         `legion:${legion.id}`,
-        `${newLeader.username} has been promoted to leader`,
+        `${newLeader.username} has been promoted to Captain`,
       )
       pushLegionHistory(legion, promoteMsg)
       emitLegionMessage(legion, promoteMsg)

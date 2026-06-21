@@ -36,8 +36,8 @@ export function AssignTaskDialog({ open, onOpenChange, members, onAssign }: Prop
   const [description, setDescription] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  // Exclude leader from being assigned (they assign to others)
-  const assignableMembers = members.filter((m) => m.role !== 'leader')
+  // Exclude captain from being assigned (they assign to others)
+  const assignableMembers = members.filter((m) => m.role !== 'captain')
 
   const handleSubmit = () => {
     if (!assigneeId || !title.trim()) return

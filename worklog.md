@@ -110,3 +110,71 @@ Stage Summary:
 - All features preserved: 7 game channels, legion system (create/join/leave/disband/kick), legion chat + raid planning, task assigner (4 statuses), notice board, recruitment, admin panel (user verification + legion approval), 24h cooldown, real-time typing, online counts
 - Sharp/angular military-industrial styling with mono-uppercase headers, scanline texture, ember-flicker brand animation, signal-pulse online dots
 - Channels renamed to match the game: General 🏝️, Trading Post 💱, PvP Arena ⚔️, Legion Recruitment 🛡️, Help & Guides 📜, Base Building 🏗️, Off-Topic 💬
+
+---
+Task ID: 9
+Agent: main (orchestrator)
+Task: Add raid alarm (when someone says "raid" in legion chat, alert every member) + rank system (Captain 1, Vice Captain 1, Elite 3 — only Captain can assign).
+
+Work Log:
+- Updated chat-types.ts: LegionRole changed from 'leader'|'officer'|'member' to 'captain'|'vice_captain'|'elite'|'member'. Added RaidAlarm interface.
+- Updated chat-service/index.ts:
+  * Changed LegionRole type to match
+  * legion:create now creates the leader with role 'captain'
+  * handleLegionLeave promotes longest-tenured member to 'captain' (was 'leader')
+  * Added RAID_ALARM_COOLDOWN_MS = 30s, MAX_VICE_CAPTAINS = 1, MAX_ELITES = 3 constants
+  * Added raidAlarmCooldown Map<legionId, timestamp>
+  * Added shouldTriggerRaidAlarm(content) — regex /\braid(s|ing|ed)?\b/i
+  * Added triggerRaidAlarm() — emits 'legion:raid-alarm' to legion room + raids room, with 30s cooldown per legion
+  * legion:chat and legion:raid:chat both check for "raid" and trigger the alarm
+  * Added legion:assign-role event handler:
+    - Only Captain (leaderId) can assign
+    - vice_captain: auto-swaps (demotes existing VC to member)
+    - elite: rejects if 3 already exist
+    - member: always allowed (demotion)
+    - Cannot change the Captain's rank
+  * Added countRole() helper
+- Updated page.tsx:
+  * Imported LegionRole and RaidAlarm types
+  * Added playRaidAlarmSiren() — Web Audio API two-tone siren (600Hz/900Hz alternating, 4 cycles, ~2.5s)
+  * Added raidAlarm state + audioCtxRef + alarmTimeoutRef
+  * Added 'legion:raid-alarm' socket listener: sets alarm state, plays siren, vibrates mobile, shows destructive toast, auto-dismisses after 12s
+  * Added handleLegionAssignRole callback
+  * Passed onAssignRole, raidAlarm, onDismissAlarm to LegionPanel
+- Updated legion-panel.tsx:
+  * Added DropdownMenu imports + ChevronDown/Star/Award icons
+  * Added RANK_META: captain (Crown/primary), vice_captain (Award/amber), elite (Star/accent), member (Shield/muted)
+  * Added raid alarm banner (flashing red, animate-pulse) with dismiss button — shown above the tabs
+  * Added "💡 Type 'raid' to sound the raid alarm" hint in chat composer
+  * Changed "Leader" badge to "Captain" in header
+  * Rewrote MembersPanel:
+    - Added Rank Roster overview card (Captain 1/1, Vice Captain 0/1, Elite 0/3)
+    - Each member shows their rank badge using RANK_META
+    - Captain sees a "Rank" dropdown on each non-captain member with options: Vice Captain (shows "swaps current" if VC exists), Elite (disabled if 3 exist), Demote to Member
+    - Kick button preserved
+  * Passed onAssignRole to MembersPanel
+- Updated assign-task-dialog.tsx: excludes 'captain' from assignees (was 'leader')
+- Restarted chat-service (PID 9489) with new code
+- Verified with agent-browser:
+  * Created "Iron Vanguard" [IRN] legion → Captain badge shows, Pending status
+  * Typed "Raid tonight! Everyone rally at the north base." in legion chat → RAID ALARM banner appeared immediately with flashing red, "HearthKeeper sounded the alarm", timestamp, Dismiss button
+  * Navigated to Members tab → Rank Roster shows Captain 1/1, Vice Captain 0/1, Elite 0/3
+  * Raid alarm cooldown working (30s between alarms per legion)
+- Lint passes with zero errors. Chat-service stable. No browser errors.
+
+Stage Summary:
+- RAID ALARM: When anyone types "raid" (case-insensitive, matches raids/raiding/raided) in legion chat OR raid planning chat, all legion members receive:
+  * A flashing red RAID ALARM banner at the top of the legion panel with the trigger message, who triggered it, and timestamp
+  * A two-tone siren sound (600Hz/900Hz alternating, generated via Web Audio API — no audio file needed)
+  * Mobile vibration (if supported)
+  * A destructive toast notification
+  * 30-second cooldown per legion to prevent spam
+  * Auto-dismisses after 12 seconds (or manual Dismiss button)
+- RANK SYSTEM: 4 ranks with limits enforced server-side:
+  * Captain (1 player) — the legion creator/leader. Cannot be reassigned. Auto-promoted to longest-tenured member if Captain leaves.
+  * Vice Captain (1 player) — assigned by Captain. Auto-swaps (previous VC demoted to Member).
+  * Elite (3 players max) — assigned by Captain. Rejects if full.
+  * Member — default rank.
+  * Only the Captain can assign/demote ranks via a dropdown menu on each member row in the Members tab.
+  * Rank Roster overview card shows current counts (e.g., "VICE CAPTAIN 0/1", "ELITE 0/3").
+  * Rank badges with distinct icons/colors: Captain (Crown/rust), Vice Captain (Award/amber), Elite (Star/olive), Member (Shield/muted).

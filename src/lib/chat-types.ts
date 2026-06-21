@@ -53,7 +53,19 @@ export interface AuthUser {
 
 // ---------- LEGION TYPES ----------
 
-export type LegionRole = 'leader' | 'officer' | 'member'
+export type LegionRole = 'captain' | 'vice_captain' | 'elite' | 'member'
+
+/** A raid alarm triggered when someone says "raid" in legion chat. */
+export interface RaidAlarm {
+  legionId: string
+  legionName: string
+  tag: string
+  triggeredBy: string
+  avatar: string
+  message: string
+  channelId: string
+  timestamp: string
+}
 
 export interface LegionMember {
   userId: string

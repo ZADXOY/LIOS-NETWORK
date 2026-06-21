@@ -36,7 +36,9 @@ import type {
   TypingEvent,
   Legion,
   LegionTaskStatus,
+  LegionRole,
   AuthUser,
+  RaidAlarm,
 } from '@/lib/chat-types'
 import { cn } from '@/lib/utils'
 import { LegionPanel } from '@/components/legion-panel'
@@ -127,6 +129,50 @@ const accent = (token: string) => ACCENT_CLASSES[token] || ACCENT_CLASSES.slate
 // Sidebar section type
 type Section = 'comms' | 'legion' | 'admin'
 
+/**
+ * Play a raid alarm siren using the Web Audio API (no external sound file needed).
+ * Generates an alternating two-tone siren that repeats 4 times.
+ */
+function playRaidAlarmSiren() {
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+    if (!AudioCtx) return
+    const ctx = new AudioCtx()
+    const now = ctx.currentTime
+
+    // Siren: alternating 600Hz / 900Hz tones, 4 cycles, ~2.5s total
+    const tones = [
+      { freq: 600, start: 0, dur: 0.3 },
+      { freq: 900, start: 0.3, dur: 0.3 },
+      { freq: 600, start: 0.6, dur: 0.3 },
+      { freq: 900, start: 0.9, dur: 0.3 },
+      { freq: 600, start: 1.2, dur: 0.3 },
+      { freq: 900, start: 1.5, dur: 0.3 },
+      { freq: 600, start: 1.8, dur: 0.3 },
+      { freq: 900, start: 2.1, dur: 0.3 },
+    ]
+
+    for (const tone of tones) {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'square'
+      osc.frequency.setValueAtTime(tone.freq, now + tone.start)
+      gain.gain.setValueAtTime(0, now + tone.start)
+      gain.gain.linearRampToValueAtTime(0.18, now + tone.start + 0.02)
+      gain.gain.linearRampToValueAtTime(0, now + tone.start + tone.dur)
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.start(now + tone.start)
+      osc.stop(now + tone.start + tone.dur + 0.02)
+    }
+
+    // Close the context after the siren finishes to free resources
+    setTimeout(() => ctx.close().catch(() => {}), 2800)
+  } catch (err) {
+    console.warn('[raid-alarm] could not play siren:', err)
+  }
+}
+
 export default function Home() {
   const { toast } = useToast()
 
@@ -158,6 +204,11 @@ export default function Home() {
   // Legion raids state
   const [raidMessages, setRaidMessages] = useState<ChatMessage[]>([])
   const [raidTyping, setRaidTyping] = useState<{ username: string; avatar: string }[]>([])
+
+  // Raid alarm state — when someone says "raid" in legion chat, all members get an alarm
+  const [raidAlarm, setRaidAlarm] = useState<RaidAlarm | null>(null)
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const alarmTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // Admin state
   const [authUser, setAuthUser] = useState<AuthUser | null>(null)
@@ -349,6 +400,26 @@ export default function Home() {
       toast({ title: 'Recruitment posted', description: data.message })
     })
 
+    // Raid alarm — triggered when someone says "raid" in legion chat
+    sock.on('legion:raid-alarm', (alarm: RaidAlarm) => {
+      setRaidAlarm(alarm)
+      // Play the siren
+      playRaidAlarmSiren()
+      // Vibrate on mobile (if supported)
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate([400, 200, 400, 200, 400])
+      }
+      // Show a toast as well
+      toast({
+        title: '🚨 RAID ALARM',
+        description: `${alarm.triggeredBy} sounded the alarm in [${alarm.tag}] ${alarm.legionName}: "${alarm.message}"`,
+        variant: 'destructive',
+      })
+      // Auto-dismiss the banner after 12 seconds
+      if (alarmTimeoutRef.current) clearTimeout(alarmTimeoutRef.current)
+      alarmTimeoutRef.current = setTimeout(() => setRaidAlarm(null), 12000)
+    })
+
     sock.on('admin:pending-legions', (list: Legion[]) => setAdminPendingLegions(list))
     sock.on('admin:all-legions', (list: Legion[]) => setAdminAllLegions(list))
 
@@ -514,6 +585,13 @@ export default function Home() {
     const sock = socketRef.current
     if (!sock) return
     sock.emit('legion:task-delete', { taskId })
+  }, [])
+
+  // ---------- Legion rank assignment (Captain assigns Vice Captain / Elite) ----------
+  const handleLegionAssignRole = useCallback((userId: string, role: 'vice_captain' | 'elite' | 'member') => {
+    const sock = socketRef.current
+    if (!sock) return
+    sock.emit('legion:assign-role', { userId, role })
   }, [])
 
   const handleLegionRecruit = useCallback((reason: string) => {
@@ -903,6 +981,12 @@ export default function Home() {
                   onRaidJoin={handleRaidJoin}
                   onRaidSendMessage={handleRaidSendMessage}
                   onRaidTyping={handleRaidTyping}
+                  onAssignRole={handleLegionAssignRole}
+                  raidAlarm={raidAlarm}
+                  onDismissAlarm={() => {
+                    setRaidAlarm(null)
+                    if (alarmTimeoutRef.current) clearTimeout(alarmTimeoutRef.current)
+                  }}
                 />
               </section>
             ) : activeSection === 'legion' && !legion ? (

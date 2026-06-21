@@ -20,6 +20,9 @@ import {
   X,
   Clock,
   Loader2,
+  ChevronDown,
+  Star,
+  Award,
 } from 'lucide-react'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -46,7 +49,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import type { Legion, LegionTask, LegionTaskStatus, ChatMessage, LegionMember } from '@/lib/chat-types'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import type { Legion, LegionTask, LegionTaskStatus, ChatMessage, LegionMember, LegionRole, RaidAlarm } from '@/lib/chat-types'
 import { cn } from '@/lib/utils'
 import { AssignTaskDialog } from '@/components/assign-task-dialog'
 import { LegionLogo } from '@/components/legion-onboarding'
@@ -71,6 +82,12 @@ interface Props {
   onRaidJoin: () => void
   onRaidSendMessage: (content: string) => void
   onRaidTyping: (isTyping: boolean) => void
+  /** Captain assigns Vice Captain / Elite / Member ranks */
+  onAssignRole: (userId: string, role: 'vice_captain' | 'elite' | 'member') => void
+  /** Active raid alarm (if any) — shown as a flashing banner */
+  raidAlarm: RaidAlarm | null
+  /** Dismiss the raid alarm banner */
+  onDismissAlarm: () => void
 }
 
 const TASK_STATUS_META: Record<
@@ -103,6 +120,34 @@ const TASK_STATUS_META: Record<
   },
 }
 
+/** Rank metadata — badge styling for each legion role. */
+const RANK_META: Record<LegionRole, { label: string; icon: React.ReactNode; chipBg: string; chipText: string }> = {
+  captain: {
+    label: 'Captain',
+    icon: <Crown className="h-3 w-3" />,
+    chipBg: 'bg-primary/20',
+    chipText: 'text-primary',
+  },
+  vice_captain: {
+    label: 'Vice Captain',
+    icon: <Award className="h-3 w-3" />,
+    chipBg: 'bg-amber-500/20',
+    chipText: 'text-amber-300',
+  },
+  elite: {
+    label: 'Elite',
+    icon: <Star className="h-3 w-3" />,
+    chipBg: 'bg-accent/20',
+    chipText: 'text-accent',
+  },
+  member: {
+    label: 'Member',
+    icon: <Shield className="h-3 w-3" />,
+    chipBg: 'bg-muted/40',
+    chipText: 'text-muted-foreground',
+  },
+}
+
 export function LegionPanel({
   legion,
   currentUserId,
@@ -123,6 +168,9 @@ export function LegionPanel({
   onRaidJoin,
   onRaidSendMessage,
   onRaidTyping,
+  onAssignRole,
+  raidAlarm,
+  onDismissAlarm,
 }: Props) {
   const [draft, setDraft] = useState('')
   const [noticeDraft, setNoticeDraft] = useState('')
@@ -199,7 +247,7 @@ export function LegionPanel({
               {isLeader && (
                 <Badge className="h-5 gap-1 bg-primary/20 px-1.5 text-[10px] text-primary hover:bg-primary/30 rounded-sm">
                   <Crown className="h-3 w-3" />
-                  Leader
+                  Captain
                 </Badge>
               )}
               <Badge
@@ -264,6 +312,43 @@ export function LegionPanel({
           )}
         </div>
       </div>
+
+      {/* Raid alarm banner — flashing red overlay shown to all legion members when someone says "raid" */}
+      {raidAlarm && (
+        <div className="border-b-2 border-destructive bg-destructive/20 px-3 sm:px-4 py-3 animate-pulse">
+          <div className="mx-auto flex max-w-3xl items-start gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-sm bg-destructive/30 text-destructive">
+              <Flame className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-destructive mono-header">
+                  🚨 RAID ALARM
+                </span>
+                <span className="rounded-sm bg-destructive/30 px-1.5 py-0.5 text-[10px] font-mono font-bold text-destructive">
+                  [{raidAlarm.tag}]
+                </span>
+              </div>
+              <p className="mt-0.5 text-xs text-foreground/90 break-words">
+                <span className="font-semibold">{raidAlarm.triggeredBy}</span> sounded the alarm:
+                {' "'}<span className="italic">{raidAlarm.message}</span>{'"'}
+              </p>
+              <p className="mt-0.5 text-[10px] text-muted-foreground font-mono">
+                {new Date(raidAlarm.timestamp).toLocaleTimeString()} · Rally your legion now!
+              </p>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-7 px-2 text-xs text-destructive hover:bg-destructive/20 rounded-sm mono-header shrink-0"
+              onClick={onDismissAlarm}
+            >
+              <X className="h-3.5 w-3.5" />
+              Dismiss
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex border-b border-border/60 px-2 sm:px-3">
@@ -422,6 +507,9 @@ export function LegionPanel({
                   <kbd className="ml-1 rounded-sm bg-muted px-1 py-0.5">Shift</kbd>+
                   <kbd className="rounded-sm bg-muted px-1 py-0.5">Enter</kbd> for new line · Only legion members can see this
                 </p>
+                <p className="mt-0.5 px-1 text-[10px] text-destructive/80 mono-header">
+                  💡 Type "raid" to sound the raid alarm and alert every member of your legion
+                </p>
               </div>
               <Button
                 onClick={handleSend}
@@ -541,6 +629,7 @@ export function LegionPanel({
           isLeader={isLeader}
           currentUserId={currentUserId}
           onKick={(m) => setKickTarget(m)}
+          onAssignRole={onAssignRole}
         />
       )}
 
@@ -896,73 +985,163 @@ function MembersPanel({
   isLeader,
   currentUserId,
   onKick,
+  onAssignRole,
 }: {
   members: LegionMember[]
   isLeader: boolean
   currentUserId: string
   onKick: (m: LegionMember) => void
+  onAssignRole: (userId: string, role: 'vice_captain' | 'elite' | 'member') => void
 }) {
+  // Count current ranks for display + limit enforcement in the UI
+  const viceCaptainCount = members.filter((m) => m.role === 'vice_captain').length
+  const eliteCount = members.filter((m) => m.role === 'elite').length
+
   return (
     <ScrollArea className="flex-1 scrollbar-island">
-      <div className="mx-auto max-w-3xl space-y-1 p-3 sm:p-4">
-        {members.map((m) => {
-          const isSelf = m.userId === currentUserId
-          const isMemberLeader = m.role === 'leader'
-          return (
-            <div
-              key={m.userId}
-              className={cn(
-                'flex items-center gap-3 rounded-sm border border-border bg-card/40 p-3',
-                isSelf && 'border-primary/40 bg-primary/5 border-l-2 border-l-primary',
-              )}
-            >
-              <div className="relative">
-                <Avatar className="h-9 w-9 rounded-sm">
-                  <AvatarFallback className="bg-muted text-sm rounded-sm">{m.avatar}</AvatarFallback>
-                </Avatar>
-                <span className="signal-pulse absolute -bottom-0 -right-0 h-2.5 w-2.5 rounded-full bg-accent ring-2 ring-card" />
+      <div className="mx-auto max-w-3xl space-y-3 p-3 sm:p-4">
+        {/* Rank overview */}
+        <div className="rounded-sm border border-border bg-card/40 p-3">
+          <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mono-header">
+            Rank Roster
+          </h3>
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="rounded-sm bg-primary/10 p-2">
+              <div className="flex items-center justify-center gap-1 text-primary">
+                <Crown className="h-3 w-3" />
+                <span className="text-[10px] font-bold mono-header">CAPTAIN</span>
               </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="truncate text-sm font-semibold">
-                    {m.username}
-                    {isSelf && (
-                      <span className="ml-1 text-[10px] text-muted-foreground">(you)</span>
-                    )}
-                  </span>
-                  {isMemberLeader ? (
-                    <Badge className="h-5 gap-1 bg-primary/20 px-1.5 text-[10px] text-primary hover:bg-primary/30 rounded-sm">
-                      <Crown className="h-3 w-3" />
-                      Leader
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline" className="h-5 gap-1 px-1.5 text-[10px] rounded-sm">
-                      <Shield className="h-3 w-3" />
-                      Member
-                    </Badge>
-                  )}
-                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px] rounded-sm">
-                    Lv {m.level}
-                  </Badge>
-                </div>
-                <p className="text-[10px] text-muted-foreground font-mono">
-                  Joined {formatDate(m.joinedAt)}
-                </p>
-              </div>
-              {isLeader && !isSelf && !isMemberLeader && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 text-destructive hover:text-destructive rounded-sm"
-                  onClick={() => onKick(m)}
-                >
-                  <UserMinus className="h-3.5 w-3.5" />
-                  <span className="ml-1 hidden sm:inline mono-header">Kick</span>
-                </Button>
-              )}
+              <p className="mt-0.5 text-xs font-mono">1 / 1</p>
             </div>
-          )
-        })}
+            <div className="rounded-sm bg-amber-500/10 p-2">
+              <div className="flex items-center justify-center gap-1 text-amber-300">
+                <Award className="h-3 w-3" />
+                <span className="text-[10px] font-bold mono-header">VICE CAPTAIN</span>
+              </div>
+              <p className="mt-0.5 text-xs font-mono">{viceCaptainCount} / 1</p>
+            </div>
+            <div className="rounded-sm bg-accent/10 p-2">
+              <div className="flex items-center justify-center gap-1 text-accent">
+                <Star className="h-3 w-3" />
+                <span className="text-[10px] font-bold mono-header">ELITE</span>
+              </div>
+              <p className="mt-0.5 text-xs font-mono">{eliteCount} / 3</p>
+            </div>
+          </div>
+          {isLeader && (
+            <p className="mt-2 text-center text-[10px] text-muted-foreground mono-header">
+              As Captain, use the ⋮ menu on each member to assign ranks
+            </p>
+          )}
+        </div>
+
+        {/* Member list */}
+        <div className="space-y-1">
+          {members.map((m) => {
+            const isSelf = m.userId === currentUserId
+            const isCaptain = m.role === 'captain'
+            const rank = RANK_META[m.role]
+            return (
+              <div
+                key={m.userId}
+                className={cn(
+                  'flex items-center gap-3 rounded-sm border border-border bg-card/40 p-3',
+                  isSelf && 'border-primary/40 bg-primary/5 border-l-2 border-l-primary',
+                )}
+              >
+                <div className="relative">
+                  <Avatar className="h-9 w-9 rounded-sm">
+                    <AvatarFallback className="bg-muted text-sm rounded-sm">{m.avatar}</AvatarFallback>
+                  </Avatar>
+                  <span className="signal-pulse absolute -bottom-0 -right-0 h-2.5 w-2.5 rounded-full bg-accent ring-2 ring-card" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="truncate text-sm font-semibold">
+                      {m.username}
+                      {isSelf && (
+                        <span className="ml-1 text-[10px] text-muted-foreground">(you)</span>
+                      )}
+                    </span>
+                    <Badge className={cn('h-5 gap-1 px-1.5 text-[10px] rounded-sm', rank.chipBg, rank.chipText)}>
+                      {rank.icon}
+                      {rank.label}
+                    </Badge>
+                    <Badge variant="secondary" className="h-5 px-1.5 text-[10px] rounded-sm">
+                      Lv {m.level}
+                    </Badge>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground font-mono">
+                    Joined {formatDate(m.joinedAt)}
+                  </p>
+                </div>
+
+                {/* Captain actions: rank assignment dropdown + kick */}
+                {isLeader && !isSelf && !isCaptain && (
+                  <div className="flex items-center gap-1 shrink-0">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 gap-1 rounded-sm mono-header"
+                          title="Assign rank"
+                        >
+                          <span className="text-[11px]">Rank</span>
+                          <ChevronDown className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="rounded-sm">
+                        <DropdownMenuLabel className="mono-header text-[10px]">Assign Rank</DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="gap-2 mono-header text-xs"
+                          disabled={m.role === 'vice_captain'}
+                          onClick={() => onAssignRole(m.userId, 'vice_captain')}
+                        >
+                          <Award className="h-3.5 w-3.5 text-amber-300" />
+                          Vice Captain
+                          {viceCaptainCount >= 1 && m.role !== 'vice_captain' && (
+                            <span className="ml-auto text-[10px] text-amber-400">(swaps current)</span>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="gap-2 mono-header text-xs"
+                          disabled={m.role === 'elite' || eliteCount >= 3}
+                          onClick={() => onAssignRole(m.userId, 'elite')}
+                        >
+                          <Star className="h-3.5 w-3.5 text-accent" />
+                          Elite
+                          {eliteCount >= 3 && m.role !== 'elite' && (
+                            <span className="ml-auto text-[10px] text-destructive">(full)</span>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="gap-2 mono-header text-xs"
+                          disabled={m.role === 'member'}
+                          onClick={() => onAssignRole(m.userId, 'member')}
+                        >
+                          <Shield className="h-3.5 w-3.5 text-muted-foreground" />
+                          Demote to Member
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 text-destructive hover:text-destructive rounded-sm"
+                      onClick={() => onKick(m)}
+                      title="Kick member"
+                    >
+                      <UserMinus className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )
+          })}
+        </div>
       </div>
     </ScrollArea>
   )
