@@ -43,11 +43,12 @@ jobs:
           JAVA_HOME: ${{ env.JAVA_HOME }}
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
         run: |
-          # Create a bubblewrap config that skips JDK/SDK install prompts
+          # Create a bubblewrap config pointing to the pre-installed JDK and Android SDK
+          # so Bubblewrap doesn't prompt to download them
           mkdir -p ~/.bubblewrap
-          echo '{"jdkPath":"'"$JAVA_HOME'","androidSdkPath":"'"/usr/local/lib/android/sdk"'"}' > ~/.bubblewrap/config.json
+          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$ANDROID_HOME" > ~/.bubblewrap/config.json
           cat ~/.bubblewrap/config.json
-          # Use --skip-validators to avoid validation prompts
+          # Initialize the TWA project
           bubblewrap init --manifest ./twa-manifest.json --directory ./twa-build --force
 
       - name: Build debug APK
