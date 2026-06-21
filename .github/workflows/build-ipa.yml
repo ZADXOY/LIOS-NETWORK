@@ -50,38 +50,6 @@ jobs:
         working-directory: ./ios-project
         run: npx cap add ios || true
 
-      - name: Copy web assets
-        working-directory: ./ios-project
-        run: |
-          # Create a minimal web app that redirects to the live site
-          mkdir -p ../public/ios-stub
-          cat > ../public/ios-stub/index.html << 'HTMLEOF'
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-            <title>Last Island</title>
-            <style>
-              body { margin:0; background:#161310; }
-              .loader {
-                position:fixed; top:50%; left:50%; transform:translate(-50%,-50%);
-                color:#c2502a; font-family:monospace; text-align:center;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="loader">
-              <div style="font-size:48px;">🔥</div>
-              <div style="margin-top:12px;">Loading Last Island…</div>
-            </div>
-            <script>
-              window.location.href = 'https://lios-network.vercel.app';
-            </script>
-          </body>
-          </html>
-          HTMLEOF
-
       - name: Sync web assets to iOS
         working-directory: ./ios-project
         run: npx cap sync ios

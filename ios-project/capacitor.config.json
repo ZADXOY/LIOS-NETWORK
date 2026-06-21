@@ -1,24 +1,18 @@
 {
-  "name": "LastIsland",
-  "app_id": "com.lastisland.survivorcomms",
-  "version": "1.0.0",
-  "webDir": "../public",
+  "appId": "com.lastisland.survivorcomms",
+  "appName": "Last Island",
+  "webDir": "www",
   "server": {
     "url": "https://lios-network.vercel.app",
     "cleartext": false
   },
   "ios": {
     "contentInset": "always",
-    "backgroundColor": "#161310",
-    "limitsNavigationsToAppBoundDomains": [
-      "lios-network.vercel.app"
-    ]
+    "backgroundColor": "#161310"
   },
   "plugins": {
     "LocalNotifications": {
-      "smallIcon": "ic_stat_icon",
-      "iconColor": "#c2502a",
-      "sound": "beep.wav"
+      "iconColor": "#c2502a"
     },
     "PushNotifications": {
       "presentationOptions": ["badge", "sound", "alert"]
