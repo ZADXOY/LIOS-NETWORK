@@ -1,6 +1,6 @@
 {
   "packageId": "com.lastisland.survivorcomms",
-  "host": "last-island-chat.vercel.app",
+  "host": "lios-network.vercel.app",
   "name": "Last Island",
   "launcherName": "Last Island",
   "display": "standalone",
@@ -14,8 +14,8 @@
   "backgroundColor": "#161310",
   "enableNotifications": true,
   "startUrl": "/",
-  "iconUrl": "https://last-island-chat.vercel.app/icons/icon-512.png",
-  "maskableIconUrl": "https://last-island-chat.vercel.app/icons/maskable-512.png",
+  "iconUrl": "https://lios-network.vercel.app/icons/icon-512.png",
+  "maskableIconUrl": "https://lios-network.vercel.app/icons/maskable-512.png",
   "splashScreenFadeOutDuration": 300,
   "signingKey": {
     "path": "/tmp/android.keystore",
@@ -28,11 +28,11 @@
       "name": "Comms",
       "shortName": "Comms",
       "url": "/",
-      "iconUrl": "https://last-island-chat.vercel.app/icons/icon-192.png"
+      "iconUrl": "https://lios-network.vercel.app/icons/icon-192.png"
     }
   ],
   "generatorApp": "bubblewrap",
-  "webManifestUrl": "https://last-island-chat.vercel.app/manifest.json",
+  "webManifestUrl": "https://lios-network.vercel.app/manifest.json",
   "fallbackType": "customtabs",
   "features": {
     "locationDelegation": {
@@ -48,7 +48,6 @@
   "enableSiteSettingsShortcut": false,
   "isChromeOSOnly": false,
   "isMetaQuest": false,
-  "fullScopeUrl": "https://last-island-chat.vercel.app/",
-  "minSdkVersion": 21,
-  "_comment": "Replace 'last-island-chat.vercel.app' with your actual deployed URL before building."
+  "fullScopeUrl": "https://lios-network.vercel.app/",
+  "minSdkVersion": 21
 }
